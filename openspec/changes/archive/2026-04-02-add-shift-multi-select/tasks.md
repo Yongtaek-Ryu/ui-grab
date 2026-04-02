@@ -1,6 +1,0 @@
-- [x] Add OpenSpec change files for built-in Shift multi-selection
-- [x] Implement runtime-level `Shift+click` multi-selection in `packages/react-grab`
-- [x] Keep the existing prompt UI and comments history working for multi-selection
-- [x] Add or update tests covering Shift multi-selection and prompt submission
-- [x] Update the README in English and Korean with attribution and usage
-- [x] Run build, typecheck, lint, and the most relevant tests

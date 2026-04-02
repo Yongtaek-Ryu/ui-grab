@@ -190,6 +190,37 @@ test.describe("Visual Feedback", () => {
       expect(elementBounds).toBeDefined();
     });
 
+    test("prompt panel should center on the selected element even after an edge click", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.clickToolbarToggle();
+
+      const target = reactGrab.page.locator("[data-testid='plain-button']");
+      await target.scrollIntoViewIfNeeded();
+      const elementBounds = await target.boundingBox();
+      if (!elementBounds) {
+        throw new Error("Could not get bounds for prompt centering test");
+      }
+
+      await reactGrab.page.mouse.click(
+        elementBounds.x + elementBounds.width - 2,
+        elementBounds.y + elementBounds.height / 2,
+      );
+
+      await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+      await expect(async () => {
+        const labelBounds = await reactGrab.getSelectionLabelBounds();
+        expect(labelBounds).not.toBeNull();
+
+        const labelCenterX =
+          labelBounds!.label.x + labelBounds!.label.width / 2;
+        const selectionCenterX = elementBounds.x + elementBounds.width / 2;
+
+        expect(Math.abs(labelCenterX - selectionCenterX)).toBeLessThan(10);
+      }).toPass({ timeout: 2000 });
+    });
+
     test("label should be clamped to viewport", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverElement("[data-testid='edge-bottom-left']");

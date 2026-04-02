@@ -14,6 +14,28 @@ const getFirstCommentItemText = async (reactGrab: {
   }, COMMENT_ITEM_SELECTOR);
 
 test.describe("Shift Multi Select", () => {
+  test("should allow grouped selection after keyboard activation once Shift-click starts", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activateViaKeyboard();
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.clickElement("li:first-child");
+
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
+
+    await reactGrab.clickElement("li:nth-child(2)");
+
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).elementsCount)
+      .toBe(2);
+
+    await reactGrab.page.keyboard.up("Shift");
+
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+  });
+
   test("should wait for Shift release before entering prompt mode", async ({
     reactGrab,
   }) => {

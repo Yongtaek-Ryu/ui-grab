@@ -53,6 +53,12 @@ const DEFAULT_OFFSCREEN_POSITION: LabelPosition = {
   edgeOffsetX: 0,
 };
 
+const GLASS_SURFACE_COLOR = "rgba(244, 248, 252, 0.82)";
+const GLASS_ARROW_COLOR = "rgba(244, 248, 252, 0.76)";
+const GLASS_BORDER_COLOR = "rgba(255, 255, 255, 0.42)";
+const GLASS_PANEL_SHADOW =
+  "0 18px 44px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(255, 255, 255, 0.2)";
+
 interface PositionResult {
   position: LabelPosition;
   computedArrowPosition: ArrowPosition | null;
@@ -81,6 +87,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isCompletedStatus = () =>
     props.status === "copied" || props.status === "fading";
+
+  const shouldCenterOnSelection = () =>
+    props.isPromptMode || props.status === "copying" || isCompletedStatus();
 
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
@@ -240,7 +249,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
       // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
       // This avoids the flicker when content changes because centering doesn't depend on JS measurement
-      const anchorX = cursorX;
+      const anchorX = shouldCenterOnSelection() ? selectionCenterX : cursorX;
       let edgeOffsetX = 0;
       let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
@@ -414,6 +423,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             leftPercent={positionComputation().position.arrowLeftPercent}
             leftOffsetPx={positionComputation().position.arrowLeftOffset}
             labelWidth={panelWidth()}
+            color={GLASS_ARROW_COLOR}
           />
         </Show>
 
@@ -437,12 +447,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <div
           ref={panelRef}
           class={cn(
-            "contain-layout flex items-center gap-[5px] rounded-[10px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)]",
-            "bg-white",
+            "contain-layout flex items-center gap-[5px] rounded-[14px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)] overflow-hidden",
             isShaking() && "animate-shake",
           )}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
+            background: `linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, ${GLASS_SURFACE_COLOR} 100%)`,
+            border: `1px solid ${GLASS_BORDER_COLOR}`,
+            "box-shadow": GLASS_PANEL_SHADOW,
+            "backdrop-filter": "blur(20px) saturate(150%)",
+            "-webkit-backdrop-filter": "blur(20px) saturate(150%)",
           }}
           onAnimationEnd={() => setIsShaking(false)}
         >
@@ -481,7 +495,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       <button
                         data-react-grab-ignore-events
                         data-react-grab-abort
-                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                        class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black/72 cursor-pointer ml-1 interactive-scale"
+                        style={{
+                          "box-shadow":
+                            "inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(15,23,42,0.16)",
+                        }}
                         onPointerDown={(event) => event.stopPropagation()}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -656,7 +674,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   <Show when={props.onSubmit}>
                     <button
                       data-react-grab-submit
-                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black cursor-pointer ml-1 interactive-scale"
+                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black/72 cursor-pointer ml-1 interactive-scale"
+                      style={{
+                        "box-shadow":
+                          "inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(15,23,42,0.16)",
+                      }}
                       onClick={() => props.onSubmit?.()}
                     >
                       <IconSubmit size={10} class="text-white" />

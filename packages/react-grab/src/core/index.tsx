@@ -554,6 +554,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       shiftMultiSelectAnchorPosition = null;
     };
 
+    const canStartShiftMultiSelect = () =>
+      !store.pendingCommentMode &&
+      !isPendingContextMenuSelect &&
+      pendingDefaultActionId === null;
+
     const isShiftMultiSelectCommentMode = () =>
       store.pendingCommentMode && !isPromptMode();
 
@@ -2045,7 +2050,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       hasModifierKeyHeld: boolean,
       isShiftKeyHeld: boolean,
     ) => {
-      if (store.pendingCommentMode && isShiftKeyHeld) {
+      const shouldUpdateShiftMultiSelection =
+        isShiftKeyHeld &&
+        (store.pendingCommentMode || canStartShiftMultiSelect());
+
+      if (shouldUpdateShiftMultiSelection) {
         const element =
           getElementAtPosition(clientX, clientY) ??
           (isElementConnected(store.detectedElement)
@@ -2054,8 +2063,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (!element) return;
 
+        if (!store.pendingCommentMode) {
+          actions.setPendingCommentMode(true);
+        }
+
         const position = { x: clientX, y: clientY };
         keyboardSelectedElement = null;
+        setIsInspectMode(false);
+        clearArrowNavigation();
         updateShiftMultiSelection(element, position);
         return;
       }

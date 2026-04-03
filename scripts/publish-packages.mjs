@@ -17,6 +17,22 @@ const dryRun = rawArgs.includes("--dry-run");
 const selectedNames = rawArgs.filter((arg) => arg !== "--dry-run");
 const packageNames =
   selectedNames.length > 0 ? selectedNames : [...packageDirs.keys()];
+const unsupportedNpmConfigEnvKeys = new Set([
+  "npm_config_globalconfig",
+  "npm_globalconfig",
+  "npm_config_recursive",
+  "pnpm_config_recursive",
+  "npm_config_verify_deps_before_run",
+  "pnpm_config_verify_deps_before_run",
+  "npm_config__jsr_registry",
+  "pnpm_config__jsr_registry",
+]);
+
+const npmCommandEnv = Object.fromEntries(
+  Object.entries(process.env).filter(
+    ([key]) => !unsupportedNpmConfigEnvKeys.has(key.toLowerCase()),
+  ),
+);
 
 for (const packageName of packageNames) {
   if (!packageDirs.has(packageName)) {
@@ -85,7 +101,7 @@ for (const packageName of packageNames) {
         {
           cwd: repoRoot,
           stdio: "inherit",
-          env: process.env,
+          env: npmCommandEnv,
         },
       );
     } finally {
@@ -106,6 +122,6 @@ for (const packageName of packageNames) {
   execFileSync("npm", publishArgs, {
     cwd: repoRoot,
     stdio: "inherit",
-    env: process.env,
+    env: npmCommandEnv,
   });
 }

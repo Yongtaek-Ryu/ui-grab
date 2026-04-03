@@ -6,7 +6,7 @@ dist
 .next
 **/*.tgz
 coverage
-react-grab-extension.zip
+ui-grab-extension.zip
 tsup.config.bundled_*.mjs
 test-results
 playwright-report
@@ -17,6 +17,7 @@ meta.json
 .agents/skills
 .claude
 .omx
+packages/mcp/.package.json.backup
 openspec/changes/*
 !openspec/changes/archive/
 !openspec/changes/archive/**

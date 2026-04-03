@@ -23,6 +23,17 @@ const readFiniteNumber = (value: unknown): number | undefined =>
 const clampToolbarScale = (value: number): number =>
   Math.max(TOOLBAR_MIN_SCALE, Math.min(TOOLBAR_MAX_SCALE, value));
 
+export const resolveToolbarCollapsed = (
+  collapsed: boolean,
+  enabled: boolean,
+): boolean => {
+  if (!enabled) {
+    return true;
+  }
+
+  return collapsed;
+};
+
 export const resolveToolbarDimensions = (
   state: Partial<ToolbarState> | null | undefined,
   edge: SnapEdge,
@@ -102,15 +113,20 @@ export const loadToolbarState = (): ToolbarState | null => {
       },
       edge,
     );
+    const enabled = typeof record.enabled === "boolean" ? record.enabled : true;
+    const collapsed = resolveToolbarCollapsed(
+      typeof record.collapsed === "boolean" ? record.collapsed : false,
+      enabled,
+    );
+
     return {
       edge,
       ratio:
         typeof record.ratio === "number"
           ? record.ratio
           : TOOLBAR_DEFAULT_POSITION_RATIO,
-      collapsed:
-        typeof record.collapsed === "boolean" ? record.collapsed : false,
-      enabled: typeof record.enabled === "boolean" ? record.enabled : true,
+      collapsed,
+      enabled,
       scale: resolveToolbarScale(
         {
           scale: readFiniteNumber(record.scale),

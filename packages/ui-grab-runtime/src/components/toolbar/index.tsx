@@ -13,6 +13,7 @@ import { cn } from "../../utils/cn.js";
 import { formatShortcut } from "../../utils/format-shortcut.js";
 import {
   loadToolbarState,
+  resolveToolbarCollapsed,
   resolveToolbarScale,
   saveToolbarState,
   type SnapEdge,
@@ -1100,6 +1101,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   ): ToolbarState => {
     const currentState = loadToolbarState();
     const edge = overrides.edge ?? currentState?.edge ?? snapEdge();
+    const enabled =
+      overrides.enabled ?? currentState?.enabled ?? props.enabled ?? true;
     const scale = clampToolbarScale(
       resolveToolbarScale(
         {
@@ -1114,10 +1117,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     return {
       edge,
       ratio: overrides.ratio ?? currentState?.ratio ?? positionRatio(),
-      collapsed:
+      collapsed: resolveToolbarCollapsed(
         overrides.collapsed ?? currentState?.collapsed ?? isCollapsed(),
-      enabled:
-        overrides.enabled ?? currentState?.enabled ?? props.enabled ?? true,
+        enabled,
+      ),
+      enabled,
       scale,
       width: undefined,
       height: undefined,
@@ -1181,39 +1185,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onToggleComments?.(),
   );
 
-  const handleToggleCollapse = drag.createDragAwareHandler(() => {
-    const rect = containerRef?.getBoundingClientRect();
-    const wasCollapsed = isCollapsed();
-    let newRatio = positionRatio();
-
-    if (wasCollapsed) {
-      const { position: newPos, ratio } = getExpandedFromCollapsed(
-        currentPosition(),
-        snapEdge(),
-      );
-      newRatio = ratio;
-      setPosition(newPos);
-      setPositionRatio(newRatio);
-    } else if (rect) {
-      expandedDimensions = { width: rect.width, height: rect.height };
-    }
-
-    setIsCollapseAnimating(true);
-    setIsCollapsed((prev) => !prev);
-
-    saveAndNotify({
-      edge: snapEdge(),
-      ratio: newRatio,
-      collapsed: !wasCollapsed,
-      enabled: props.enabled ?? true,
-    });
-
+  const scheduleCollapseAnimationReset = (syncCollapsedRect: boolean) => {
     if (collapseAnimationTimeout) {
       clearTimeout(collapseAnimationTimeout);
     }
     collapseAnimationTimeout = setTimeout(() => {
       setIsCollapseAnimating(false);
-      if (isCollapsed()) {
+      if (syncCollapsedRect && isCollapsed()) {
         const collapsedRect = containerRef?.getBoundingClientRect();
         if (collapsedRect) {
           setCollapsedDimensions({
@@ -1223,10 +1201,74 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }
       }
     }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+  };
+
+  const collapseToolbar = (nextEnabled: boolean) => {
+    const rect = containerRef?.getBoundingClientRect();
+    if (rect) {
+      expandedDimensions = { width: rect.width, height: rect.height };
+    }
+
+    setIsCollapseAnimating(true);
+    setIsCollapsed(true);
+
+    saveAndNotify({
+      edge: snapEdge(),
+      ratio: positionRatio(),
+      collapsed: true,
+      enabled: nextEnabled,
+    });
+
+    scheduleCollapseAnimationReset(true);
+  };
+
+  const expandToolbar = (nextEnabled: boolean) => {
+    const { position: newPos, ratio: newRatio } = getExpandedFromCollapsed(
+      currentPosition(),
+      snapEdge(),
+    );
+
+    setPosition(newPos);
+    setPositionRatio(newRatio);
+    setIsCollapseAnimating(true);
+    setIsCollapsed(false);
+
+    saveAndNotify({
+      edge: snapEdge(),
+      ratio: newRatio,
+      collapsed: false,
+      enabled: nextEnabled,
+    });
+
+    scheduleCollapseAnimationReset(false);
+  };
+
+  const handleCollapsedToolbarClick = drag.createDragAwareHandler(() => {
+    const shouldEnable = props.enabled === false;
+    if (shouldEnable) {
+      setIsCollapseAnimating(true);
+      props.onToggleEnabled?.();
+    }
+    expandToolbar(shouldEnable ? true : (props.enabled ?? true));
   });
 
   const handleToggleEnabled = drag.createDragAwareHandler(() => {
     const isCurrentlyEnabled = Boolean(props.enabled);
+    if (isCurrentlyEnabled) {
+      setIsToggleTooltipVisible(false);
+      if (toggleAnimationRafId !== undefined) {
+        nativeCancelAnimationFrame(toggleAnimationRafId);
+        toggleAnimationRafId = undefined;
+      }
+      clearTimeout(toggleAnimationTimeout);
+      setIsToggleAnimating(false);
+      setIsRapidRetoggle(false);
+      setIsCollapseAnimating(true);
+      props.onToggleEnabled?.();
+      collapseToolbar(false);
+      return;
+    }
+
     const edge = snapEdge();
     const preTogglePosition = position();
     const isVerticalEdge = edge === "left" || edge === "right";
@@ -1519,9 +1561,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     setIsResizeTooltipVisible(false);
     if (didResizeOccur) {
       didResizeOccur = false;
-      return;
     }
-    handleToggleCollapse(event);
   };
 
   const handleResize = () => {
@@ -1866,7 +1906,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             isCommentsPinned={props.isCommentsPinned}
             disableGridTransitions={isRapidRetoggle()}
             onAnimationEnd={() => setIsShaking(false)}
-            onCollapseClick={handleToggleCollapse}
+            onCollapseClick={handleCollapsedToolbarClick}
             onExpandableButtonsRef={(element) => {
               expandableButtonsRef = element;
             }}
@@ -1877,24 +1917,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             onPanelClick={(event) => {
               if (isCollapsed()) {
                 event.stopPropagation();
-                const { position: newPos, ratio: newRatio } =
-                  getExpandedFromCollapsed(currentPosition(), snapEdge());
-                setPosition(newPos);
-                setPositionRatio(newRatio);
-                setIsCollapseAnimating(true);
-                setIsCollapsed(false);
-                saveAndNotify({
-                  edge: snapEdge(),
-                  ratio: newRatio,
-                  collapsed: false,
-                  enabled: props.enabled ?? true,
-                });
-                if (collapseAnimationTimeout) {
-                  clearTimeout(collapseAnimationTimeout);
-                }
-                collapseAnimationTimeout = setTimeout(() => {
-                  setIsCollapseAnimating(false);
-                }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+                handleCollapsedToolbarClick(event);
               }
             }}
             selectButton={
@@ -2048,10 +2071,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                 <div class="relative shrink-0 overflow-visible">
                   <button
                     data-ui-grab-ignore-events
-                    data-ui-grab-toolbar-collapse
                     data-ui-grab-toolbar-resize-hitbox
                     data-ui-grab-toolbar-resize-handle
-                    aria-label="Drag to resize or click to collapse toolbar"
+                    aria-label="Drag to resize toolbar"
                     class={resizeControlButtonClass()}
                     style={resizeHandleMotionStyle()}
                     onClick={handleResizeControlClick}

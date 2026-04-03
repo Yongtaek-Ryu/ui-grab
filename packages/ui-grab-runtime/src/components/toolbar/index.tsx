@@ -20,6 +20,7 @@ import {
 } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
+import { IconResizeDiagonal } from "../icons/icon-resize-diagonal.jsx";
 import {
   createSafePolygonTracker,
   type TargetRect,
@@ -107,6 +108,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let scaledContentRef: HTMLDivElement | undefined;
   let expandableButtonsRef: HTMLDivElement | undefined;
+  let resizeHandleRef: HTMLDivElement | undefined;
   let toolbarSizeObserver: ResizeObserver | undefined;
   let unfreezeUpdatesCallback: (() => void) | null = null;
   let lastKnownExpandableWidth = 0;
@@ -148,6 +150,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isResizing, setIsResizing] = createSignal(false);
+  const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
+  const [isResizeHandleHovered, setIsResizeHandleHovered] = createSignal(false);
+  const [supportsHover, setSupportsHover] = createSignal(true);
   const [snapEdge, setSnapEdge] = createSignal<SnapEdge>(
     savedState?.edge ?? "bottom",
   );
@@ -189,6 +194,22 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       case "right":
         return { left: widthDelta, top: heightDelta / 2 };
     }
+  });
+  const resizeHandleMetrics = createMemo(() => {
+    const scale = toolbarScale();
+    const width = Math.round(clampToRange(20 * scale, 18, 30));
+    const height = Math.round(clampToRange(20 * scale, 18, 30));
+    const icon = Math.round(clampToRange(11 * scale, 10, 17));
+    const offset = Math.round(height * 0.55);
+    return {
+      width,
+      height,
+      icon,
+      offset,
+      radius: Math.round(Math.min(width, height) / 2),
+      innerRadius: Math.max(7, Math.round(Math.min(width, height) / 2) - 1),
+      tooltipGap: Math.round(height + 8),
+    };
   });
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [isShaking, setIsShaking] = createSignal(false);
@@ -390,16 +411,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         return "left-[-10px] bottom-[-10px]";
     }
   };
-  const resizeGripRotationClass = () => {
-    switch (snapEdge()) {
-      case "top":
-      case "left":
-        return "rotate-0";
-      case "bottom":
-      case "right":
-        return "rotate-90";
-    }
-  };
+  const isResizeHandleVisible = () =>
+    !supportsHover() || isToolbarHovered() || isResizing();
 
   const shakeTooltipPositionClass = (): string => {
     const tooltipSide = tooltipPosition();
@@ -411,6 +424,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     const placementClass =
       tooltipSide === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5";
     return `left-1/2 -translate-x-1/2 ${placementClass}`;
+  };
+
+  const guidanceTooltipTransformOrigin = (): string => {
+    const tooltipSide = tooltipPosition();
+    switch (tooltipSide) {
+      case "top":
+        return "center bottom";
+      case "bottom":
+        return "center top";
+      case "left":
+        return "right center";
+      case "right":
+      default:
+        return "left center";
+    }
   };
 
   const stopEventPropagation = (event: Event) => {
@@ -1095,6 +1123,10 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       props.onContainerRef?.(containerRef);
     }
 
+    if (typeof window.matchMedia === "function") {
+      setSupportsHover(window.matchMedia("(hover: hover)").matches);
+    }
+
     measureToolbarBaseDimensions();
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
@@ -1352,8 +1384,16 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         drag.handlePointerDown(event);
       }}
       on:mousedown={stopEventPropagation}
-      onMouseEnter={() => !isCollapsed() && props.onSelectHoverChange?.(true)}
-      onMouseLeave={() => props.onSelectHoverChange?.(false)}
+      onMouseEnter={() => {
+        setIsToolbarHovered(true);
+        if (!isCollapsed()) {
+          props.onSelectHoverChange?.(true);
+        }
+      }}
+      onMouseLeave={() => {
+        setIsToolbarHovered(false);
+        props.onSelectHoverChange?.(false);
+      }}
     >
       <div
         class="absolute"
@@ -1563,78 +1603,96 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           data-ui-grab-toolbar-resize-handle
           aria-hidden="true"
           class={cn(
-            "absolute z-30 flex h-4 w-4 items-center justify-center rounded-[8px] border border-white/26 bg-white/12 shadow-[0_6px_18px_rgba(17,24,39,0.14),inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur-[12px] transition-colors hover:bg-white/24",
+            "absolute z-30 flex h-4 w-4 items-center justify-center rounded-[8px] border border-white/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.54)_0%,rgba(255,255,255,0.18)_100%)] text-black/32 shadow-[0_8px_20px_rgba(17,24,39,0.12),inset_0_1px_0_rgba(255,255,255,0.62)] backdrop-blur-[16px] transition-[opacity,transform,background-color,box-shadow,color] duration-150 ease-out hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.68)_0%,rgba(255,255,255,0.26)_100%)] hover:text-black/46 hover:shadow-[0_10px_22px_rgba(17,24,39,0.15),inset_0_1px_0_rgba(255,255,255,0.7)]",
             resizeHandlePlacementClass(),
             resizeCursorClass(),
+            isResizeHandleVisible()
+              ? "pointer-events-auto opacity-100 scale-100"
+              : "pointer-events-none opacity-0 scale-[0.92]",
           )}
           on:pointerdown={handleToolbarResizePointerDown}
         >
-          <div
-            class={cn(
-              "pointer-events-none relative h-2.5 w-2.5 opacity-80",
-              resizeGripRotationClass(),
-            )}
-          >
-            <span class="absolute bottom-0 right-0 h-[1.5px] w-2 rounded-full bg-black/28" />
-            <span class="absolute bottom-[3px] right-0 h-[1.5px] w-[6px] rounded-full bg-black/24" />
-            <span class="absolute bottom-[6px] right-0 h-[1.5px] w-[3px] rounded-full bg-black/20" />
-          </div>
+          <span class="pointer-events-none absolute inset-[1px] rounded-[7px] bg-[linear-gradient(135deg,rgba(255,255,255,0.58)_0%,rgba(255,255,255,0.14)_100%)] opacity-90" />
+          <IconResizeDiagonal
+            size={10}
+            class="pointer-events-none relative z-10"
+          />
         </div>
       </Show>
       <Show when={props.isActive && !hasLearnedSelectionHints()}>
         <div
-          class={cn(
-            TOOLTIP_BASE_CLASS,
-            "flex items-center gap-1 animate-tooltip-fade-in [animation-fill-mode:backwards]",
-            "bg-white",
-            shakeTooltipPositionClass(),
-          )}
+          class={shakeTooltipPositionClass()}
           style={{
             "z-index": String(Z_INDEX_OVERLAY),
             [isVertical() ? "top" : "left"]: "50%",
           }}
         >
-          <Show when={selectionHintIndex() === 0}>
-            <span
-              class={cn(
-                "flex items-center gap-1",
-                hasHintCycled() && HINT_FLIP_IN_ANIMATION,
-              )}
-            >
-              Click or
-              <Kbd>↵</Kbd>
-              to capture
-            </span>
-          </Show>
-          <Show when={selectionHintIndex() === 1}>
-            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
-              <Kbd>↑</Kbd>
-              <Kbd>↓</Kbd>
-              to fine-tune target
-            </span>
-          </Show>
-          <Show when={selectionHintIndex() === 2}>
-            <span class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}>
-              <Kbd>esc</Kbd>
-              to cancel
-            </span>
-          </Show>
+          <div
+            data-ui-grab-selection-hint
+            class={cn(
+              TOOLTIP_BASE_CLASS,
+              "flex items-center gap-1 animate-tooltip-fade-in [animation-fill-mode:backwards]",
+              "bg-white",
+            )}
+            style={{
+              transform: `scale(${toolbarScale()})`,
+              "transform-origin": guidanceTooltipTransformOrigin(),
+            }}
+          >
+            <Show when={selectionHintIndex() === 0}>
+              <span
+                class={cn(
+                  "flex items-center gap-1",
+                  hasHintCycled() && HINT_FLIP_IN_ANIMATION,
+                )}
+              >
+                Click or
+                <Kbd>↵</Kbd>
+                to capture
+              </span>
+            </Show>
+            <Show when={selectionHintIndex() === 1}>
+              <span
+                class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}
+              >
+                <Kbd>↑</Kbd>
+                <Kbd>↓</Kbd>
+                to fine-tune target
+              </span>
+            </Show>
+            <Show when={selectionHintIndex() === 2}>
+              <span
+                class={cn("flex items-center gap-1", HINT_FLIP_IN_ANIMATION)}
+              >
+                <Kbd>esc</Kbd>
+                to cancel
+              </span>
+            </Show>
+          </div>
         </div>
       </Show>
       <Show when={isShakeTooltipVisible()}>
         <div
-          class={cn(
-            TOOLTIP_BASE_CLASS,
-            "animate-tooltip-fade-in",
-            "bg-white",
-            shakeTooltipPositionClass(),
-          )}
+          class={shakeTooltipPositionClass()}
           style={{
             "z-index": String(Z_INDEX_OVERLAY),
             [isVertical() ? "top" : "left"]: "50%",
           }}
         >
-          Enable to continue
+          <div
+            data-ui-grab-shake-tooltip
+            class={cn(
+              TOOLTIP_BASE_CLASS,
+              "animate-tooltip-fade-in",
+              "bg-white",
+            )}
+            style={{
+              transform: `scale(${toolbarScale()})`,
+              "transform-origin": guidanceTooltipTransformOrigin(),
+            }}
+          >
+            Enable to continue
+          </div>
         </div>
       </Show>
     </div>

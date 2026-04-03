@@ -4,6 +4,7 @@ import {
   onMount,
   onCleanup,
   createSignal,
+  createMemo,
   createEffect,
   on,
 } from "solid-js";
@@ -16,7 +17,10 @@ import {
   DROPDOWN_VIEWPORT_PADDING_PX,
   FEEDBACK_DURATION_MS,
   SAFE_POLYGON_BUFFER_PX,
-  Z_INDEX_OVERLAY,
+  TOOLBAR_DEFAULT_SCALE,
+  TOOLBAR_MAX_SCALE,
+  TOOLBAR_MIN_SCALE,
+  Z_INDEX_FLOATING_PANEL,
 } from "../constants.js";
 import { createSafePolygonTracker } from "../utils/safe-polygon.js";
 import { cn } from "../utils/cn.js";
@@ -33,7 +37,6 @@ interface CommentsDropdownProps {
   disconnectedItemIds?: Set<string>;
   activeItemId?: string | null;
   onActivateItem?: (item: CommentItem) => void;
-  onSelectItem?: (item: CommentItem) => void;
   onEditItem?: (item: CommentItem) => void;
   onCopyItem?: (item: CommentItem) => void;
   onDeleteItem?: (item: CommentItem) => void;
@@ -86,9 +89,58 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
     () => props.position,
   );
 
+  const toPx = (value: number) => `${Math.round(value * 100) / 100}px`;
+
+  const dropdownScale = () =>
+    Math.max(
+      TOOLBAR_MIN_SCALE,
+      Math.min(
+        TOOLBAR_MAX_SCALE,
+        props.position?.toolbarScale ?? TOOLBAR_DEFAULT_SCALE,
+      ),
+    );
+
   const [isCopyAllConfirmed, setIsCopyAllConfirmed] = createSignal(false);
 
   let copyAllFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const metrics = createMemo(() => {
+    const scale = dropdownScale();
+    return {
+      scale,
+      minWidth: DROPDOWN_MIN_WIDTH_PX * scale,
+      maxWidth: DROPDOWN_MAX_WIDTH_PX * scale,
+      panelRadius: 10 * scale,
+      headerPaddingX: 8 * scale,
+      headerPaddingTop: 6 * scale,
+      headerPaddingBottom: 4 * scale,
+      headerLabelFontSize: 11 * scale,
+      headerActionHeight: 24 * scale,
+      headerActionRadius: 8 * scale,
+      headerActionPaddingX: 10 * scale,
+      headerActionFontSize: 11 * scale,
+      actionGap: 6 * scale,
+      listPaddingX: 8 * scale,
+      listPaddingY: 6 * scale,
+      listMaxHeight: 240 * scale,
+      rowGap: 12 * scale,
+      rowRadius: 8 * scale,
+      rowPaddingX: 8 * scale,
+      rowPaddingY: 6 * scale,
+      titleFontSize: 12 * scale,
+      titleLineHeight: 16 * scale,
+      commentFontSize: 11 * scale,
+      commentLineHeight: 12 * scale,
+      commentMarginTop: 2 * scale,
+      timeFontSize: 10 * scale,
+      metaGap: 4 * scale,
+      itemActionHeight: 20 * scale,
+      itemActionRadius: 7 * scale,
+      itemActionPaddingX: 6 * scale,
+      itemActionFontSize: 10 * scale,
+      iconSize: 10 * scale,
+    };
+  });
 
   createEffect(
     on(
@@ -104,7 +156,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
 
   const clampedMaxWidth = () =>
     Math.min(
-      DROPDOWN_MAX_WIDTH_PX,
+      metrics().maxWidth,
       window.innerWidth -
         dropdown.displayPosition().left -
         DROPDOWN_VIEWPORT_PADDING_PX,
@@ -116,7 +168,7 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
     DROPDOWN_VIEWPORT_PADDING_PX;
 
   const panelMinWidth = () =>
-    Math.max(DROPDOWN_MIN_WIDTH_PX, props.position?.toolbarWidth ?? 0);
+    Math.max(metrics().minWidth, props.position?.toolbarWidth ?? 0);
 
   const headerActionClass = (intent: "neutral" | "danger" = "neutral") =>
     cn(
@@ -185,7 +237,8 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
         style={{
           top: `${dropdown.displayPosition().top}px`,
           left: `${dropdown.displayPosition().left}px`,
-          "z-index": `${Z_INDEX_OVERLAY}`,
+          "z-index": `${Z_INDEX_FLOATING_PANEL}`,
+          "font-size": toPx(13 * metrics().scale),
           "pointer-events": dropdown.isAnimatedIn() ? "auto" : "none",
           "transform-origin":
             DROPDOWN_EDGE_TRANSFORM_ORIGIN[dropdown.lastAnchorEdge()],
@@ -219,19 +272,46 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
             "bg-white",
           )}
           style={{
+            "border-radius": toPx(metrics().panelRadius),
             "min-width": `${panelMinWidth()}px`,
             "max-width": `${clampedMaxWidth()}px`,
             "max-height": `${clampedMaxHeight()}px`,
           }}
         >
-          <div class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1">
-            <span class="text-[11px] font-medium text-black/40">Comments</span>
+          <div
+            class="contain-layout shrink-0 flex items-center justify-between px-2 pt-1.5 pb-1"
+            style={{
+              "padding-left": toPx(metrics().headerPaddingX),
+              "padding-right": toPx(metrics().headerPaddingX),
+              "padding-top": toPx(metrics().headerPaddingTop),
+              "padding-bottom": toPx(metrics().headerPaddingBottom),
+            }}
+          >
+            <span
+              class="text-[11px] font-medium text-black/40"
+              style={{
+                "font-size": toPx(metrics().headerLabelFontSize),
+                "line-height": toPx(metrics().headerActionHeight),
+              }}
+            >
+              Comments
+            </span>
             <Show when={props.items.length > 0}>
-              <div class="flex items-center gap-1.5">
+              <div
+                class="flex items-center gap-1.5"
+                style={{ gap: toPx(metrics().actionGap) }}
+              >
                 <button
                   data-ui-grab-ignore-events
                   data-ui-grab-comments-copy-all
                   class={headerActionClass()}
+                  style={{
+                    height: toPx(metrics().headerActionHeight),
+                    "border-radius": toPx(metrics().headerActionRadius),
+                    "padding-left": toPx(metrics().headerActionPaddingX),
+                    "padding-right": toPx(metrics().headerActionPaddingX),
+                    "font-size": toPx(metrics().headerActionFontSize),
+                  }}
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onCopyAll?.();
@@ -254,6 +334,13 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                   data-ui-grab-ignore-events
                   data-ui-grab-comments-clear
                   class={headerActionClass("danger")}
+                  style={{
+                    height: toPx(metrics().headerActionHeight),
+                    "border-radius": toPx(metrics().headerActionRadius),
+                    "padding-left": toPx(metrics().headerActionPaddingX),
+                    "padding-right": toPx(metrics().headerActionPaddingX),
+                    "font-size": toPx(metrics().headerActionFontSize),
+                  }}
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClearAll?.();
@@ -265,10 +352,25 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
             </Show>
           </div>
 
-          <div class="min-h-0 border-t-[0.5px] border-t-[#D9D9D9] px-2 py-1.5">
+          <div
+            class="min-h-0 border-t-[0.5px] border-t-[#D9D9D9] px-2 py-1.5"
+            style={{
+              "padding-left": toPx(metrics().listPaddingX),
+              "padding-right": toPx(metrics().listPaddingX),
+              "padding-top": toPx(metrics().listPaddingY),
+              "padding-bottom": toPx(metrics().listPaddingY),
+            }}
+          >
             <div
               ref={highlightContainerRef}
               class="relative -mx-2 -my-1.5 flex max-h-[240px] flex-col overflow-y-auto [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(0,0,0,0.15)_transparent]"
+              style={{
+                "max-height": toPx(metrics().listMaxHeight),
+                "margin-left": toPx(-metrics().listPaddingX),
+                "margin-right": toPx(-metrics().listPaddingX),
+                "margin-top": toPx(-metrics().listPaddingY),
+                "margin-bottom": toPx(-metrics().listPaddingY),
+              }}
             >
               <div
                 ref={highlightRef}
@@ -285,6 +387,14 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                       data-ui-grab-ignore-events
                       data-ui-grab-comment-item
                       class="group relative z-1 contain-layout flex w-full cursor-pointer items-start justify-between gap-3 rounded-[8px] px-2 py-1.5 text-left transition-colors"
+                      style={{
+                        gap: toPx(metrics().rowGap),
+                        "border-radius": toPx(metrics().rowRadius),
+                        "padding-left": toPx(metrics().rowPaddingX),
+                        "padding-right": toPx(metrics().rowPaddingX),
+                        "padding-top": toPx(metrics().rowPaddingY),
+                        "padding-bottom": toPx(metrics().rowPaddingY),
+                      }}
                       classList={{
                         "opacity-45 hover:opacity-100": isDisconnected(),
                         "bg-black/[0.045]": isActive(),
@@ -295,27 +405,17 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                         event.stopPropagation();
                         event.currentTarget.focus({ preventScroll: true });
                         props.onActivateItem?.(item);
-                        props.onSelectItem?.(item);
+                        props.onEditItem?.(item);
                       }}
                       onKeyDown={(event) => {
                         if (
-                          event.code === "Enter" &&
+                          (event.code === "Enter" || event.code === "Space") &&
                           event.currentTarget === event.target
                         ) {
                           event.preventDefault();
                           event.stopPropagation();
                           props.onEditItem?.(item);
                           return;
-                        }
-
-                        if (
-                          event.code === "Space" &&
-                          event.currentTarget === event.target
-                        ) {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          props.onActivateItem?.(item);
-                          props.onSelectItem?.(item);
                         }
                       }}
                       onMouseEnter={(event) => {
@@ -335,24 +435,58 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                       onBlur={clearHighlight}
                     >
                       <span class="flex min-w-0 flex-1 flex-col">
-                        <span class="truncate text-[12px] font-medium leading-4 text-black">
+                        <span
+                          class="truncate text-[12px] font-medium leading-4 text-black"
+                          style={{
+                            "font-size": toPx(metrics().titleFontSize),
+                            "line-height": toPx(metrics().titleLineHeight),
+                          }}
+                        >
                           {getCommentItemDisplayName(item)}
                         </span>
                         <Show when={item.commentText}>
-                          <span class="mt-0.5 truncate text-[11px] leading-3 text-black/40">
+                          <span
+                            class="mt-0.5 truncate text-[11px] leading-3 text-black/40"
+                            style={{
+                              "margin-top": toPx(metrics().commentMarginTop),
+                              "font-size": toPx(metrics().commentFontSize),
+                              "line-height": toPx(metrics().commentLineHeight),
+                            }}
+                          >
                             {item.commentText}
                           </span>
                         </Show>
                       </span>
-                      <span class="flex shrink-0 flex-col items-end gap-1">
-                        <span class="flex items-center justify-end text-[10px] text-black/25">
+                      <span
+                        class="flex shrink-0 flex-col items-end gap-1"
+                        style={{ gap: toPx(metrics().metaGap) }}
+                      >
+                        <span
+                          class="flex items-center justify-end text-[10px] text-black/25"
+                          style={{ "font-size": toPx(metrics().timeFontSize) }}
+                        >
                           {formatRelativeTime(item.timestamp)}
                         </span>
-                        <span class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <span
+                          class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                          style={{ gap: toPx(metrics().metaGap) }}
+                        >
                           <button
                             data-ui-grab-ignore-events
                             data-ui-grab-comment-copy
                             class={itemActionClass()}
+                            style={{
+                              height: toPx(metrics().itemActionHeight),
+                              "border-radius": toPx(metrics().itemActionRadius),
+                              "padding-left": toPx(
+                                metrics().itemActionPaddingX,
+                              ),
+                              "padding-right": toPx(
+                                metrics().itemActionPaddingX,
+                              ),
+                              "font-size": toPx(metrics().itemActionFontSize),
+                              gap: toPx(metrics().metaGap),
+                            }}
                             onPointerDown={(event) => event.stopPropagation()}
                             onClick={(event) => {
                               event.stopPropagation();
@@ -360,20 +494,38 @@ export const CommentsDropdown: Component<CommentsDropdownProps> = (props) => {
                               props.onCopyItem?.(item);
                             }}
                           >
-                            <IconCopy size={10} class="text-current" />
+                            <IconCopy
+                              size={metrics().iconSize}
+                              class="text-current"
+                            />
                             <span>Copy</span>
                           </button>
                           <button
                             data-ui-grab-ignore-events
                             data-ui-grab-comment-delete
                             class={itemActionClass("danger")}
+                            style={{
+                              height: toPx(metrics().itemActionHeight),
+                              "border-radius": toPx(metrics().itemActionRadius),
+                              "padding-left": toPx(
+                                metrics().itemActionPaddingX,
+                              ),
+                              "padding-right": toPx(
+                                metrics().itemActionPaddingX,
+                              ),
+                              "font-size": toPx(metrics().itemActionFontSize),
+                              gap: toPx(metrics().metaGap),
+                            }}
                             onPointerDown={(event) => event.stopPropagation()}
                             onClick={(event) => {
                               event.stopPropagation();
                               props.onDeleteItem?.(item);
                             }}
                           >
-                            <IconTrash size={10} class="text-current" />
+                            <IconTrash
+                              size={metrics().iconSize}
+                              class="text-current"
+                            />
                             <span>Delete</span>
                           </button>
                         </span>

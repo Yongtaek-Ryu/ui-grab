@@ -379,6 +379,7 @@ export interface DropdownAnchor {
   y: number;
   edge: ToolbarState["edge"];
   toolbarWidth: number;
+  toolbarScale: number;
 }
 
 export interface UiGrabAPI {
@@ -491,6 +492,7 @@ export interface UiGrabRendererProps {
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
+  toolbarScale?: number;
   onRequestAbortSession?: (sessionId: string) => void;
   onAbortSession?: (sessionId: string, confirmed: boolean) => void;
   onDismissSession?: (sessionId: string) => void;
@@ -541,7 +543,6 @@ export interface UiGrabRendererProps {
   onCommentsButtonHover?: (isHovered: boolean) => void;
   activeCommentItemId?: string | null;
   onActivateCommentItem?: (item: CommentItem) => void;
-  onCommentItemSelect?: (item: CommentItem) => void;
   onCommentItemEdit?: (item: CommentItem) => void;
   onCommentItemCopy?: (item: CommentItem) => void;
   onCommentItemDelete?: (item: CommentItem) => void;
@@ -651,6 +652,7 @@ export interface SelectionLabelProps {
   supportsUndo?: boolean;
   supportsFollowUp?: boolean;
   dismissButtonText?: string;
+  toolbarScale?: number;
   actionCycleState?: ActionCycleState;
   arrowNavigationState?: ArrowNavigationState;
   onArrowNavigationSelect?: (index: number) => void;

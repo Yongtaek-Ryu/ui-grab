@@ -609,10 +609,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const updateBubbleSize = (
     element: HTMLDivElement | undefined,
     scale: number,
-    setSize: (updater: (current: { width: number; height: number }) => {
-      width: number;
-      height: number;
-    }) => void,
+    setSize: (
+      updater: (current: { width: number; height: number }) => {
+        width: number;
+        height: number;
+      },
+    ) => void,
   ) => {
     if (!element) return;
     const rect = element.getBoundingClientRect();
@@ -703,7 +705,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               ? `${centerX - scaledWidth / 2}px`
               : `${centerX}px`,
             top: hasMeasuredBubble
-              ? `${(dropdownRect?.top ?? anchorRect.top) - gap - scaledHeight}px`
+              ? `${
+                  (dropdownRect?.top ?? anchorRect.top) - gap - scaledHeight
+                }px`
               : `${(dropdownRect?.top ?? anchorRect.top) - gap}px`,
             transform: hasMeasuredBubble ? "none" : "translate(-50%, -100%)",
             display: "flex",
@@ -724,7 +728,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           return {
             position: "absolute",
             left: hasMeasuredBubble
-              ? `${(dropdownRect?.left ?? anchorRect.left) - gap - scaledWidth}px`
+              ? `${
+                  (dropdownRect?.left ?? anchorRect.left) - gap - scaledWidth
+                }px`
               : `${(dropdownRect?.left ?? anchorRect.left) - gap}px`,
             top: hasMeasuredBubble
               ? `${centerY - scaledHeight / 2}px`
@@ -820,6 +826,61 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     "z-index": String(Z_INDEX_OVERLAY),
     ...guidanceTooltipPositionStyle(shakeTooltipBubbleSize()),
   }));
+  const toolbarButtonTooltipWrapperStyles = (
+    selector: string,
+  ): JSX.CSSProperties => {
+    const anchorRect =
+      getRelativeOverlayRect(selector) ?? getToolbarShellRelativeRect();
+    const tooltipSide = tooltipPosition();
+    const baseStyle: JSX.CSSProperties = {
+      "z-index": String(Z_INDEX_OVERLAY),
+      position: "absolute",
+      width: "0px",
+      height: "0px",
+      "pointer-events": "none",
+      transform: `scale(${toolbarScale()})`,
+      "transform-origin": "0 0",
+    };
+
+    if (anchorRect) {
+      const centerX = anchorRect.left + anchorRect.width / 2;
+      const centerY = anchorRect.top + anchorRect.height / 2;
+
+      switch (tooltipSide) {
+        case "top":
+          return {
+            ...baseStyle,
+            left: `${centerX}px`,
+            top: `${anchorRect.top}px`,
+          };
+        case "bottom":
+          return {
+            ...baseStyle,
+            left: `${centerX}px`,
+            top: `${anchorRect.bottom}px`,
+          };
+        case "left":
+          return {
+            ...baseStyle,
+            left: `${anchorRect.left}px`,
+            top: `${centerY}px`,
+          };
+        case "right":
+        default:
+          return {
+            ...baseStyle,
+            left: `${anchorRect.right}px`,
+            top: `${centerY}px`,
+          };
+      }
+    }
+
+    return {
+      ...baseStyle,
+      left: "50%",
+      top: "50%",
+    };
+  };
   const guidanceTooltipContentClass = () =>
     cn("flex items-center", isGuidanceTooltipCompact() ? "gap-[3px]" : "gap-1");
 
@@ -1073,7 +1134,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       expandedDimensions = { width: rect.width, height: rect.height };
     }
 
-    const measuredWidth = isCollapsedNow ? expandedDimensions.width : rect.width;
+    const measuredWidth = isCollapsedNow
+      ? expandedDimensions.width
+      : rect.width;
     const measuredHeight = isCollapsedNow
       ? expandedDimensions.height
       : rect.height;
@@ -1181,8 +1244,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
 
-  const handleComments = drag.createDragAwareHandler(() =>
-    props.onToggleComments?.(),
+  const handleComments = drag.createDragAwareHandler(
+    () => props.onToggleComments?.(),
   );
 
   const scheduleCollapseAnimationReset = (syncCollapsedRect: boolean) => {
@@ -1249,7 +1312,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       setIsCollapseAnimating(true);
       props.onToggleEnabled?.();
     }
-    expandToolbar(shouldEnable ? true : (props.enabled ?? true));
+    expandToolbar(shouldEnable ? true : props.enabled ?? true);
   });
 
   const handleToggleEnabled = drag.createDragAwareHandler(() => {
@@ -1289,8 +1352,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       preToggleCenterOffset === null
         ? null
         : isVerticalEdge
-          ? preTogglePosition.y + preToggleCenterOffset
-          : preTogglePosition.x + preToggleCenterOffset;
+        ? preTogglePosition.y + preToggleCenterOffset
+        : preTogglePosition.x + preToggleCenterOffset;
 
     const readExpandableDimension = () =>
       isVerticalEdge ? lastKnownExpandableHeight : lastKnownExpandableWidth;
@@ -1954,12 +2017,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     )}
                   />
                 </button>
-                <Tooltip
-                  visible={isSelectTooltipVisible() && isTooltipAllowed()}
-                  position={tooltipPosition()}
-                >
-                  Select element <Kbd>{formatShortcut("C")}</Kbd>
-                </Tooltip>
               </>
             }
             commentsButton={
@@ -2013,12 +2070,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     </Show>
                   </span>
                 </button>
-                <Tooltip
-                  visible={isCommentsTooltipVisible() && isTooltipAllowed()}
-                  position={tooltipPosition()}
-                >
-                  {commentsTooltipLabel()}
-                </Tooltip>
               </>
             }
             toggleButton={
@@ -2058,12 +2109,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
                     />
                   </div>
                 </button>
-                <Tooltip
-                  visible={isToggleTooltipVisible() && isTooltipAllowed()}
-                  position={tooltipPosition()}
-                >
-                  {props.enabled ? "Disable" : "Enable"}
-                </Tooltip>
               </>
             }
             collapseButton={
@@ -2119,6 +2164,51 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           />
         </div>
       </div>
+      <Show when={isSelectTooltipVisible() && isTooltipAllowed()}>
+        <div
+          style={toolbarButtonTooltipWrapperStyles(
+            "[data-ui-grab-toolbar-toggle]",
+          )}
+        >
+          <Tooltip
+            visible={true}
+            position={tooltipPosition()}
+            data-ui-grab-toolbar-select-tooltip
+          >
+            Select element <Kbd>{formatShortcut("C")}</Kbd>
+          </Tooltip>
+        </div>
+      </Show>
+      <Show when={isCommentsTooltipVisible() && isTooltipAllowed()}>
+        <div
+          style={toolbarButtonTooltipWrapperStyles(
+            "[data-ui-grab-toolbar-comments]",
+          )}
+        >
+          <Tooltip
+            visible={true}
+            position={tooltipPosition()}
+            data-ui-grab-toolbar-comments-tooltip
+          >
+            {commentsTooltipLabel()}
+          </Tooltip>
+        </div>
+      </Show>
+      <Show when={isToggleTooltipVisible() && isTooltipAllowed()}>
+        <div
+          style={toolbarButtonTooltipWrapperStyles(
+            "[data-ui-grab-toolbar-enabled]",
+          )}
+        >
+          <Tooltip
+            visible={true}
+            position={tooltipPosition()}
+            data-ui-grab-toolbar-enabled-tooltip
+          >
+            {props.enabled ? "Disable" : "Enable"}
+          </Tooltip>
+        </div>
+      </Show>
       <Show
         when={
           isResizeTooltipVisible() &&

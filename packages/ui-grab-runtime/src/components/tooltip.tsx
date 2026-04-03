@@ -1,4 +1,11 @@
-import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
+import {
+  createSignal,
+  createEffect,
+  on,
+  onCleanup,
+  Show,
+  splitProps,
+} from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../utils/cn.js";
 import {
@@ -14,20 +21,27 @@ const wasTooltipRecentlyVisible = () => {
   return Date.now() - lastCloseTimestamp < TOOLTIP_GRACE_PERIOD_MS;
 };
 
-interface TooltipProps {
+interface TooltipProps extends JSX.HTMLAttributes<HTMLDivElement> {
   visible: boolean;
   position: "top" | "bottom" | "left" | "right";
   children: JSX.Element;
 }
 
 export const Tooltip: Component<TooltipProps> = (props) => {
+  const [local, rest] = splitProps(props, [
+    "visible",
+    "position",
+    "children",
+    "class",
+    "style",
+  ]);
   const [delayedVisible, setDelayedVisible] = createSignal(false);
   const [shouldAnimate, setShouldAnimate] = createSignal(true);
   let delayTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
   createEffect(
     on(
-      () => props.visible,
+      () => local.visible,
       (isVisible) => {
         if (delayTimeoutId !== undefined) {
           clearTimeout(delayTimeoutId);
@@ -69,18 +83,23 @@ export const Tooltip: Component<TooltipProps> = (props) => {
         class={cn(
           TOOLTIP_BASE_CLASS,
           "bg-white",
-          props.position === "left" || props.position === "right"
+          local.position === "left" || local.position === "right"
             ? "top-1/2 -translate-y-1/2"
             : "left-1/2 -translate-x-1/2",
-          props.position === "top" && "bottom-full mb-2.5",
-          props.position === "bottom" && "top-full mt-2.5",
-          props.position === "left" && "right-full mr-2.5",
-          props.position === "right" && "left-full ml-2.5",
+          local.position === "top" && "bottom-full mb-2.5",
+          local.position === "bottom" && "top-full mt-2.5",
+          local.position === "left" && "right-full mr-2.5",
+          local.position === "right" && "left-full ml-2.5",
           shouldAnimate() && "animate-tooltip-fade-in",
+          local.class,
         )}
-        style={{ "z-index": `${Z_INDEX_OVERLAY}` }}
+        style={{
+          "z-index": `${Z_INDEX_OVERLAY}`,
+          ...(typeof local.style === "object" ? local.style : {}),
+        }}
+        {...rest}
       >
-        {props.children}
+        {local.children}
       </div>
     </Show>
   );

@@ -773,12 +773,12 @@ test.describe("Toolbar", () => {
       expect(Math.abs(toolbarCenterY - collapseCenterY)).toBeLessThanOrEqual(
         CENTER_ALIGNMENT_TOLERANCE_PX,
       );
-      expect(Math.abs(toolbarRect!.width - collapseRect!.width)).toBeLessThanOrEqual(
-        CENTER_ALIGNMENT_TOLERANCE_PX,
-      );
-      expect(Math.abs(toolbarRect!.height - collapseRect!.height)).toBeLessThanOrEqual(
-        CENTER_ALIGNMENT_TOLERANCE_PX,
-      );
+      expect(
+        Math.abs(toolbarRect!.width - collapseRect!.width),
+      ).toBeLessThanOrEqual(CENTER_ALIGNMENT_TOLERANCE_PX);
+      expect(
+        Math.abs(toolbarRect!.height - collapseRect!.height),
+      ).toBeLessThanOrEqual(CENTER_ALIGNMENT_TOLERANCE_PX);
     });
 
     test("collapsed orb should keep the overlay inactive", async ({
@@ -1205,6 +1205,75 @@ test.describe("Toolbar", () => {
       expect(restoredToggle?.width ?? 0).toBeGreaterThan(
         (defaultToggle?.width ?? 0) + 3,
       );
+    });
+
+    test("button tooltips should render above the toolbar shell instead of clipping inside it", async ({
+      uiGrab,
+    }) => {
+      await createPersistedCommentItem(uiGrab);
+      await uiGrab.page.waitForTimeout(600);
+
+      const cases = [
+        {
+          controlSelector: "[data-ui-grab-toolbar-toggle]",
+          tooltipSelector: "[data-ui-grab-toolbar-select-tooltip]",
+          expectedTextPattern: /Select element/,
+        },
+        {
+          controlSelector: "[data-ui-grab-toolbar-comments]",
+          tooltipSelector: "[data-ui-grab-toolbar-comments-tooltip]",
+          expectedTextPattern: /^Comments\b/,
+        },
+        {
+          controlSelector: "[data-ui-grab-toolbar-enabled]",
+          tooltipSelector: "[data-ui-grab-toolbar-enabled-tooltip]",
+          expectedTextPattern: /^Disable$/,
+        },
+      ];
+
+      for (const tooltipCase of cases) {
+        await uiGrab.page.mouse.move(16, 16);
+        await hoverShadowElement(
+          uiGrab,
+          tooltipCase.controlSelector,
+          `Toolbar control not found: ${tooltipCase.controlSelector}`,
+        );
+
+        await expect
+          .poll(
+            async () =>
+              Boolean(
+                await getShadowElementRect(uiGrab, tooltipCase.tooltipSelector),
+              ),
+            { timeout: 2000 },
+          )
+          .toBe(true);
+
+        const toolbarRect = await getShadowElementRect(
+          uiGrab,
+          "[data-ui-grab-toolbar-shell]",
+        );
+        const tooltipRect = await getShadowElementRect(
+          uiGrab,
+          tooltipCase.tooltipSelector,
+        );
+        const tooltipText = await uiGrab.page.evaluate((tooltipSelector) => {
+          const host = document.querySelector("[data-ui-grab]");
+          const shadowRoot = host?.shadowRoot;
+          const root = shadowRoot?.querySelector("[data-ui-grab]");
+          return root
+            ?.querySelector<HTMLElement>(tooltipSelector)
+            ?.textContent?.trim();
+        }, tooltipCase.tooltipSelector);
+
+        expect(toolbarRect).not.toBeNull();
+        expect(tooltipRect).not.toBeNull();
+        expect(tooltipText ?? "").toMatch(tooltipCase.expectedTextPattern);
+        expect(tooltipRect?.bottom ?? Number.POSITIVE_INFINITY).toBeLessThan(
+          (toolbarRect?.top ?? 0) + 1,
+        );
+        expect(rectanglesOverlap(toolbarRect!, tooltipRect!)).toBe(false);
+      }
     });
 
     test("resize control should keep its tooltip above the toolbar shell center", async ({

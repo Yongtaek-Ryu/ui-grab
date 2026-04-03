@@ -1,4 +1,4 @@
-import type { init, ReactGrabAPI, Plugin, AgentContext } from "ui-grab/core";
+import type { init, UiGrabAPI, Plugin, AgentContext } from "ui-grab/core";
 import { DEFAULT_MCP_PORT, HEALTH_CHECK_TIMEOUT_MS } from "./constants.js";
 
 interface McpPluginOptions {
@@ -37,12 +37,12 @@ export const createMcpPlugin = (options: McpPluginOptions = {}): Plugin => {
   };
 };
 
-const isReactGrabApi = (value: unknown): value is ReactGrabAPI =>
+const isUiGrabApi = (value: unknown): value is UiGrabAPI =>
   typeof value === "object" && value !== null && "registerPlugin" in value;
 
 declare global {
   interface Window {
-    __REACT_GRAB__?: ReturnType<typeof init>;
+    __UI_GRAB__?: ReturnType<typeof init>;
   }
 }
 
@@ -70,29 +70,29 @@ export const attachMcpPlugin = async (): Promise<void> => {
 
   const plugin = createMcpPlugin();
 
-  const attach = (api: ReactGrabAPI) => {
+  const attach = (api: UiGrabAPI) => {
     api.registerPlugin(plugin);
   };
 
-  const existingApi = window.__REACT_GRAB__;
-  if (isReactGrabApi(existingApi)) {
+  const existingApi = window.__UI_GRAB__;
+  if (isUiGrabApi(existingApi)) {
     attach(existingApi);
     return;
   }
 
   window.addEventListener(
-    "react-grab:init",
+    "ui-grab:init",
     (event: Event) => {
       if (!(event instanceof CustomEvent)) return;
-      if (!isReactGrabApi(event.detail)) return;
+      if (!isUiGrabApi(event.detail)) return;
       attach(event.detail);
     },
     { once: true },
   );
 
   // HACK: Check again after adding listener in case of race condition
-  const apiAfterListener = window.__REACT_GRAB__;
-  if (isReactGrabApi(apiAfterListener)) {
+  const apiAfterListener = window.__UI_GRAB__;
+  if (isUiGrabApi(apiAfterListener)) {
     attach(apiAfterListener);
   }
 };

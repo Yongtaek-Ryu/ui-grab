@@ -30,7 +30,7 @@ export const remove = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      if (!projectInfo.hasReactGrab) {
+      if (!projectInfo.hasUiGrab) {
         preflightSpinner.fail("UI Grab is not installed.");
         logger.break();
         logger.error(

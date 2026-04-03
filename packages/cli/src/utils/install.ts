@@ -27,12 +27,12 @@ export const installPackages = (
   execSync(fullCommand, {
     cwd: projectRoot,
     stdio: "inherit",
-    env: { ...process.env, REACT_GRAB_INIT: "1" },
+    env: { ...process.env, UI_GRAB_INIT: "1" },
   });
 };
 
 export const getPackagesToInstall = (
-  includeReactGrab: boolean = true,
+  includeUiGrab: boolean = true,
 ): string[] => {
-  return includeReactGrab ? ["ui-grab"] : [];
+  return includeUiGrab ? ["ui-grab"] : [];
 };

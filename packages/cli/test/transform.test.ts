@@ -79,11 +79,11 @@ export default function RootLayout({
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("ui-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
+    expect(result.newContent).not.toContain("@ui-grab/");
   });
 
   it("should not duplicate if UI Grab already exists", () => {
-    const layoutWithReactGrab = `import Script from "next/script";
+    const layoutWithUiGrab = `import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -99,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
     const result = previewTransform("/test", "next", "app", "none", false);
 
@@ -173,7 +173,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("ui-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
+    expect(result.newContent).not.toContain("@ui-grab/");
   });
 
   it("should add base script without agent client when agent is mcp", () => {
@@ -236,7 +236,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
     expect(result.success).toBe(true);
     expect(result.newContent).toContain("ui-grab");
-    expect(result.newContent).not.toContain("@react-grab/");
+    expect(result.newContent).not.toContain("@ui-grab/");
   });
 });
 
@@ -301,7 +301,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   });
 
   it("should detect existing UI Grab in index.html as already installed", () => {
-    const indexWithReactGrab = `<!doctype html>
+    const indexWithUiGrab = `<!doctype html>
 <html lang="en">
   <head>
     <script type="module">
@@ -320,7 +320,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       return pathStr.endsWith("index.html") || pathStr.endsWith("main.tsx");
     });
     mockReadFileSync.mockImplementation((path) => {
-      if (String(path).endsWith("index.html")) return indexWithReactGrab;
+      if (String(path).endsWith("index.html")) return indexWithUiGrab;
       return `import React from "react";`;
     });
 

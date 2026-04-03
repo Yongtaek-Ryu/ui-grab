@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type ClientDefinition,
+  createMcpServerConfig,
   upsertIntoJsonc,
   installJsonClient,
   installTomlClient,
@@ -57,6 +58,41 @@ describe("getMcpClientNames", () => {
     expect(names).toContain("Droid");
     expect(names).toContain("Windsurf");
     expect(names).toContain("Zed");
+  });
+});
+
+describe("createMcpServerConfig", () => {
+  it("should prefer the locally installed MCP binary when available", () => {
+    const binaryDir = path.join(tempDir, "node_modules", ".bin");
+    fs.mkdirSync(binaryDir, { recursive: true });
+    const binaryName =
+      process.platform === "win32" ? "ui-grab-mcp.cmd" : "ui-grab-mcp";
+    const binaryPath = path.join(binaryDir, binaryName);
+    fs.writeFileSync(binaryPath, "");
+
+    const result = createMcpServerConfig(tempDir);
+
+    expect(result.stdioConfig).toEqual({
+      command: binaryPath,
+      args: ["--stdio"],
+    });
+    expect(result.openCodeConfig).toEqual({
+      type: "local",
+      command: [binaryPath, "--stdio"],
+    });
+  });
+
+  it("should fall back to npx when the MCP binary is not installed locally", () => {
+    const result = createMcpServerConfig(tempDir);
+
+    expect(result.stdioConfig).toEqual({
+      command: "npx",
+      args: ["-y", "ui-grab-mcp", "--stdio"],
+    });
+    expect(result.openCodeConfig).toEqual({
+      type: "local",
+      command: ["npx", "-y", "ui-grab-mcp", "--stdio"],
+    });
   });
 });
 

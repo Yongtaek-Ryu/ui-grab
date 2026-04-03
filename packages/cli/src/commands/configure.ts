@@ -11,7 +11,7 @@ import {
   applyTransform,
   previewCdnTransform,
   previewOptionsTransform,
-  type ReactGrabOptions,
+  type UiGrabOptions,
 } from "../utils/transform.js";
 import {
   MAX_SUGGESTIONS_COUNT,
@@ -304,7 +304,7 @@ export const configure = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      if (!projectInfo.hasReactGrab) {
+      if (!projectInfo.hasUiGrab) {
         preflightSpinner.fail("UI Grab is not installed.");
         logger.break();
         logger.error(
@@ -388,7 +388,7 @@ export const configure = new Command()
       logger.log(`Configure ${highlighter.info("UI Grab")} options:`);
       logger.break();
 
-      const collectedOptions: ReactGrabOptions = {};
+      const collectedOptions: UiGrabOptions = {};
 
       if (hasFlags) {
         if (opts.key) {

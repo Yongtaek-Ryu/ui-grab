@@ -2,7 +2,7 @@ import { vi, describe, expect, it, beforeEach } from "vitest";
 import {
   previewOptionsTransform,
   applyTransform,
-  type ReactGrabOptions,
+  type UiGrabOptions,
 } from "../src/utils/transform.js";
 
 vi.mock("node:fs", () => ({
@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 
 describe("previewOptionsTransform - Next.js App Router", () => {
-  const layoutWithReactGrab = `import Script from "next/script";
+  const layoutWithUiGrab = `import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -48,9 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -66,9 +66,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationMode: "toggle",
     };
 
@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     );
     mockReadFileSync.mockReturnValue(layoutWithSelfClosingScript);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationMode: "toggle",
       allowActivationInsideInput: false,
       maxContextLines: 3,
@@ -147,7 +147,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     );
     mockReadFileSync.mockReturnValue(layoutWithScript);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -162,9 +162,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Ctrl+Shift+G",
       activationMode: "toggle",
       keyHoldDuration: 200,
@@ -185,9 +185,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       allowActivationInsideInput: false,
     };
 
@@ -202,9 +202,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       maxContextLines: 5,
     };
 
@@ -241,7 +241,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     );
     mockReadFileSync.mockReturnValue(layoutWithOptions);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+Space",
     };
 
@@ -253,7 +253,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should fail when UI Grab is not found", () => {
-    const layoutWithoutReactGrab = `export default function RootLayout({ children }: { children: React.ReactNode }) {
+    const layoutWithoutUiGrab = `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>{children}</body>
@@ -264,9 +264,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithoutReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithoutUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -279,7 +279,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   it("should fail when layout file not found", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -291,7 +291,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 });
 
 describe("previewOptionsTransform - Next.js Pages Router", () => {
-  const documentWithReactGrab = `import { Html, Head, Main, NextScript } from "next/document";
+  const documentWithUiGrab = `import { Html, Head, Main, NextScript } from "next/document";
 import Script from "next/script";
 
 export default function Document() {
@@ -316,9 +316,9 @@ export default function Document() {
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("_document.tsx"),
     );
-    mockReadFileSync.mockReturnValue(documentWithReactGrab);
+    mockReadFileSync.mockReturnValue(documentWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+G",
       activationMode: "hold",
     };
@@ -333,7 +333,7 @@ export default function Document() {
 });
 
 describe("previewOptionsTransform - Vite", () => {
-  const entryWithReactGrab = `if (import.meta.env.DEV) {
+  const entryWithUiGrab = `if (import.meta.env.DEV) {
   import("ui-grab");
 }
 
@@ -344,9 +344,9 @@ import ReactDOM from "react-dom/client";`;
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Space",
     };
 
@@ -370,7 +370,7 @@ import ReactDOM from "react-dom/client";`;
     );
     mockReadFileSync.mockReturnValue(entryWithExistingOptions);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -387,9 +387,9 @@ import ReactDOM from "react-dom/client";`;
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Alt+E",
       activationMode: "toggle",
       maxContextLines: 10,
@@ -405,15 +405,15 @@ import ReactDOM from "react-dom/client";`;
   });
 
   it("should fail when UI Grab import not found", () => {
-    const entryWithoutReactGrab = `import React from "react";
+    const entryWithoutUiGrab = `import React from "react";
 import ReactDOM from "react-dom/client";`;
 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("main.tsx"),
     );
-    mockReadFileSync.mockReturnValue(entryWithoutReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithoutUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Space",
     };
 
@@ -424,7 +424,7 @@ import ReactDOM from "react-dom/client";`;
 });
 
 describe("previewOptionsTransform - Webpack", () => {
-  const entryWithReactGrab = `if (process.env.NODE_ENV === "development") {
+  const entryWithUiGrab = `if (process.env.NODE_ENV === "development") {
   import("ui-grab");
 }
 
@@ -442,9 +442,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("index.tsx"),
     );
-    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Ctrl+K",
     };
 
@@ -473,7 +473,7 @@ import ReactDOM from "react-dom/client";`;
     );
     mockReadFileSync.mockReturnValue(entryWithExistingOptions);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Space",
     };
 
@@ -495,9 +495,9 @@ import ReactDOM from "react-dom/client";`;
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("index.tsx"),
     );
-    mockReadFileSync.mockReturnValue(entryWithReactGrab);
+    mockReadFileSync.mockReturnValue(entryWithUiGrab);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+Shift+D",
       activationMode: "hold",
       keyHoldDuration: 300,
@@ -525,7 +525,7 @@ describe("previewOptionsTransform - Unknown framework", () => {
   it("should fail for unknown framework (no file found)", () => {
     mockExistsSync.mockReturnValue(false);
 
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -612,7 +612,7 @@ describe("applyTransform", () => {
 });
 
 describe("Activation key formats", () => {
-  const layoutWithReactGrab = `import Script from "next/script";
+  const layoutWithUiGrab = `import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -633,11 +633,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     mockExistsSync.mockImplementation((path) =>
       String(path).endsWith("layout.tsx"),
     );
-    mockReadFileSync.mockReturnValue(layoutWithReactGrab);
+    mockReadFileSync.mockReturnValue(layoutWithUiGrab);
   });
 
   it("should handle simple key like Space", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Space",
     };
 
@@ -648,7 +648,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle single letter key", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "g",
     };
 
@@ -659,7 +659,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle modifier + key combo", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+K",
     };
 
@@ -670,7 +670,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle multiple modifiers + key", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Ctrl+Shift+Alt+G",
     };
 
@@ -681,7 +681,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle function keys", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "F1",
     };
 
@@ -692,7 +692,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle Escape key", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Escape",
     };
 
@@ -703,7 +703,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   it("should handle Meta+Escape combo", () => {
-    const options: ReactGrabOptions = {
+    const options: UiGrabOptions = {
       activationKey: "Meta+Escape",
     };
 

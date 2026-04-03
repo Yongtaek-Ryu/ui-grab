@@ -4,15 +4,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uiGrabRoot = path.resolve(__dirname, "..");
-const reactGrabRoot = path.resolve(__dirname, "../../react-grab");
+const packageRoot = path.resolve(__dirname, "..");
+const runtimeRoot = path.resolve(__dirname, "../../ui-grab-runtime");
 const cliRoot = path.resolve(__dirname, "../../cli");
 const repoRoot = path.resolve(__dirname, "../../..");
 
 const ensureSourceBuilds = () => {
   console.log("Building internal source packages before packaging...");
   execSync(
-    "pnpm turbo run build --filter=react-grab --filter=@react-grab/cli",
+    "pnpm turbo run build --filter=@ui-grab/runtime --filter=@ui-grab/cli",
     {
       cwd: repoRoot,
       stdio: "inherit",
@@ -46,8 +46,8 @@ const copyDirectoryContents = (
 };
 
 const recreateDistDirectory = () => {
-  const distDir = path.join(uiGrabRoot, "dist");
-  const sourceDir = path.join(uiGrabRoot, "src");
+  const distDir = path.join(packageRoot, "dist");
+  const sourceDir = path.join(packageRoot, "src");
 
   if (fs.existsSync(distDir)) {
     fs.rmSync(distDir, { recursive: true });
@@ -62,7 +62,7 @@ const recreateDistDirectory = () => {
 
 const copyReadme = () => {
   const sourceReadme = path.join(repoRoot, "README.md");
-  const destReadme = path.join(uiGrabRoot, "README.md");
+  const destReadme = path.join(packageRoot, "README.md");
 
   if (!fs.existsSync(sourceReadme)) {
     throw new Error(`README.md not found at ${sourceReadme}`);
@@ -73,9 +73,9 @@ const copyReadme = () => {
 };
 
 const syncPackageManifest = () => {
-  const runtimePackageJson = path.join(reactGrabRoot, "package.json");
+  const runtimePackageJson = path.join(runtimeRoot, "package.json");
   const cliPackageJson = path.join(cliRoot, "package.json");
-  const destPackageJson = path.join(uiGrabRoot, "package.json");
+  const destPackageJson = path.join(packageRoot, "package.json");
 
   const runtimePackage = JSON.parse(
     fs.readFileSync(runtimePackageJson, "utf8"),
@@ -88,7 +88,7 @@ const syncPackageManifest = () => {
     ...cliPackage.dependencies,
     ...Object.fromEntries(
       Object.entries(runtimePackage.dependencies ?? {}).filter(
-        ([dependencyName]) => dependencyName !== "@react-grab/cli",
+        ([dependencyName]) => dependencyName !== "@ui-grab/cli",
       ),
     ),
   };
@@ -105,7 +105,7 @@ const syncPackageManifest = () => {
 
 const copyLicense = () => {
   const sourceLicense = path.join(repoRoot, "LICENSE");
-  const destLicense = path.join(uiGrabRoot, "LICENSE");
+  const destLicense = path.join(packageRoot, "LICENSE");
 
   if (fs.existsSync(sourceLicense)) {
     fs.copyFileSync(sourceLicense, destLicense);
@@ -119,13 +119,13 @@ const main = () => {
   ensureSourceBuilds();
   recreateDistDirectory();
   copyDirectoryContents(
-    path.join(reactGrabRoot, "dist"),
-    path.join(uiGrabRoot, "dist"),
-    "react-grab/dist",
+    path.join(runtimeRoot, "dist"),
+    path.join(packageRoot, "dist"),
+    "ui-grab-runtime/dist",
   );
   copyDirectoryContents(
     path.join(cliRoot, "dist"),
-    path.join(uiGrabRoot, "dist"),
+    path.join(packageRoot, "dist"),
     "cli/dist",
     { replaceDestination: false },
   );

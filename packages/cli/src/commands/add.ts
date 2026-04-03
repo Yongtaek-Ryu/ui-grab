@@ -33,7 +33,7 @@ export const add = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      if (!projectInfo.hasReactGrab) {
+      if (!projectInfo.hasUiGrab) {
         preflightSpinner.fail("UI Grab is not installed.");
         logger.break();
         logger.error(
@@ -59,7 +59,7 @@ export const add = new Command()
 
       if (agentArg === "mcp" || isNonInteractive) {
         if (isNonInteractive) {
-          const results = installMcpServers();
+          const results = installMcpServers(undefined, { cwd });
           const hasSuccess = results.some((result) => result.success);
           if (!hasSuccess) {
             logger.break();
@@ -68,7 +68,7 @@ export const add = new Command()
             process.exit(1);
           }
         } else {
-          const didInstall = await promptMcpInstall();
+          const didInstall = await promptMcpInstall(cwd);
           if (!didInstall) {
             logger.break();
             process.exit(0);
@@ -81,7 +81,7 @@ export const add = new Command()
         logger.log("Restart your agents to activate.");
         logger.break();
       } else {
-        const didInstall = await promptMcpInstall();
+        const didInstall = await promptMcpInstall(cwd);
         if (!didInstall) {
           logger.break();
           process.exit(0);

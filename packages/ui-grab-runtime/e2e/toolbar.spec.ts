@@ -431,7 +431,7 @@ test.describe("Toolbar", () => {
         .toBe(false);
     });
 
-    test("collapsed bottom toolbar should keep the collapse button centered", async ({
+    test("collapsed bottom toolbar should collapse to the circular button footprint", async ({
       uiGrab,
     }) => {
       await expect
@@ -465,6 +465,12 @@ test.describe("Toolbar", () => {
         CENTER_ALIGNMENT_TOLERANCE_PX,
       );
       expect(Math.abs(toolbarCenterY - collapseCenterY)).toBeLessThanOrEqual(
+        CENTER_ALIGNMENT_TOLERANCE_PX,
+      );
+      expect(Math.abs(toolbarRect!.width - collapseRect!.width)).toBeLessThanOrEqual(
+        CENTER_ALIGNMENT_TOLERANCE_PX,
+      );
+      expect(Math.abs(toolbarRect!.height - collapseRect!.height)).toBeLessThanOrEqual(
         CENTER_ALIGNMENT_TOLERANCE_PX,
       );
     });

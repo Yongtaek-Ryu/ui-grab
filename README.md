@@ -10,6 +10,16 @@ UI context picker for coding agents with built-in `Shift + click` multi-select.
 
 `ui-grab` keeps the prompt UI and comment history flow, adds built-in `Shift + click` multi-select, and ships a separate MCP bridge so browser context picking can stay lightweight by default.
 
+## Why UI Grab
+
+React Grab is an excellent foundation for visual context picking, and `ui-grab` started from that base because it already had a strong prompt UI and comment-history workflow.
+
+This project exists so those ideas can keep expanding around coding-agent use cases without staying limited to a thin compatibility layer.
+
+- It keeps the fast inspect-and-submit flow, but makes grouped selection more precise with built-in `Shift + click` picking instead of relying only on drag gestures.
+- It adds an optional MCP bridge so browser picking and agent consumption can evolve separately.
+- It gives this project room to keep shipping workflow-focused improvements on top of the original interaction model.
+
 ## Packages
 
 - [`ui-grab`](https://www.npmjs.com/package/ui-grab): runtime, CLI, and public exports for `ui-grab/core`, `ui-grab/primitives`, and `ui-grab/styles.css`

@@ -153,7 +153,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const [isVisible, setIsVisible] = createSignal(false);
   const [isCollapsed, setIsCollapsed] = createSignal(false);
   const [isResizing, setIsResizing] = createSignal(false);
-  const [isToolbarHovered, setIsToolbarHovered] = createSignal(false);
+  const [_isToolbarHovered, setIsToolbarHovered] = createSignal(false);
   const [isResizeHandleHovered, setIsResizeHandleHovered] = createSignal(false);
   const [isResizeTooltipVisible, setIsResizeTooltipVisible] =
     createSignal(false);
@@ -213,10 +213,8 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       height,
       icon: Math.round(clampToRange(11 * scale, 10, 15)),
       radius: Math.round(Math.min(width, height) / 2),
-      tooltipScale: clampToRange(scale, 0.96, 1.12),
     };
   });
-  const resizeTooltipScale = () => resizeHandleMetrics().tooltipScale;
   const [position, setPosition] = createSignal({ x: 0, y: 0 });
   const [isShaking, setIsShaking] = createSignal(false);
   const [isCollapseAnimating, setIsCollapseAnimating] = createSignal(false);
@@ -236,16 +234,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     width: 0,
     height: 0,
   });
-  const [resizeTooltipBubbleSize, setResizeTooltipBubbleSize] = createSignal({
-    width: 0,
-    height: 0,
-  });
   const [shakeTooltipBubbleSize, setShakeTooltipBubbleSize] = createSignal({
     width: 0,
     height: 0,
   });
   let clockFlashRef: HTMLSpanElement | undefined;
-  let resizeTooltipBubbleRef: HTMLDivElement | undefined;
   let selectionHintBubbleRef: HTMLDivElement | undefined;
   let shakeTooltipBubbleRef: HTMLDivElement | undefined;
   const [selectionHintIndex, setSelectionHintIndex] = createSignal(0);
@@ -336,23 +329,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
             shakeTooltipBubbleRef,
             guidanceTooltipScale(),
             setShakeTooltipBubbleSize,
-          );
-        });
-      },
-      { defer: true },
-    ),
-  );
-
-  createEffect(
-    on(
-      [isResizeTooltipVisible, toolbarScale, snapEdge],
-      ([isVisible]) => {
-        if (!isVisible) return;
-        nativeRequestAnimationFrame(() => {
-          updateBubbleSize(
-            resizeTooltipBubbleRef,
-            resizeTooltipScale(),
-            setResizeTooltipBubbleSize,
           );
         });
       },
@@ -511,7 +487,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
   const resizeHandleIconClass = () =>
     "pointer-events-none relative z-10 transition-[transform,opacity] ease-out";
-  const resizeTooltipBubbleClass = TOOLTIP_BASE_CLASS.replace("absolute ", "");
   const guidanceTooltipBubbleClass = TOOLTIP_BASE_CLASS.replace(
     "absolute ",
     "",
@@ -643,43 +618,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.commentsDropdownAnchor
       ? Math.round(clampToRange(4 * guidanceTooltipScale(), 4, 6))
       : Math.round(clampToRange(6 * guidanceTooltipScale(), 4, 8));
-  const resizeTooltipGap = () =>
-    Math.round(clampToRange(8 * resizeTooltipScale(), 6, 10));
-  const resizeTooltipWrapperStyles = createMemo<JSX.CSSProperties>(() => {
-    const shellRect = getToolbarShellRelativeRect();
-    const gap = resizeTooltipGap();
-    const scale = resizeTooltipScale();
-    const scaledWidth = resizeTooltipBubbleSize().width * scale;
-    const scaledHeight = resizeTooltipBubbleSize().height * scale;
-    const hasMeasuredBubble = scaledWidth > 0 && scaledHeight > 0;
-
-    if (shellRect) {
-      const centerX = shellRect.left + shellRect.width / 2;
-      return {
-        "z-index": String(Z_INDEX_OVERLAY),
-        position: "absolute",
-        left: hasMeasuredBubble
-          ? `${centerX - scaledWidth / 2}px`
-          : `${centerX}px`,
-        top: hasMeasuredBubble
-          ? `${shellRect.top - gap - scaledHeight}px`
-          : `${shellRect.top - gap}px`,
-        transform: hasMeasuredBubble ? "none" : "translate(-50%, -100%)",
-        display: "flex",
-        "justify-content": "center",
-      };
-    }
-
-    return {
-      "z-index": String(Z_INDEX_OVERLAY),
-      position: "absolute",
-      left: "50%",
-      top: `-${gap}px`,
-      transform: "translate(-50%, -100%)",
-      display: "flex",
-      "justify-content": "center",
-    };
-  });
   const guidanceTooltipPositionStyle = (bubbleSize: {
     width: number;
     height: number;
@@ -813,9 +751,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     selectionHintBubbleSize().width > 0 && selectionHintBubbleSize().height > 0;
   const hasMeasuredShakeBubble = () =>
     shakeTooltipBubbleSize().width > 0 && shakeTooltipBubbleSize().height > 0;
-  const guidanceTooltipWrapperStyle = (): JSX.CSSProperties => {
-    return guidanceTooltipPositionStyle(selectionHintBubbleSize());
-  };
   const selectionHintTooltipWrapperStyles = createMemo<JSX.CSSProperties>(
     () => ({
       "z-index": String(Z_INDEX_OVERLAY),
@@ -826,7 +761,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     "z-index": String(Z_INDEX_OVERLAY),
     ...guidanceTooltipPositionStyle(shakeTooltipBubbleSize()),
   }));
-  const toolbarButtonTooltipWrapperStyles = (
+  const toolbarControlTooltipWrapperStyles = (
     selector: string,
   ): JSX.CSSProperties => {
     const anchorRect =
@@ -2166,7 +2101,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       </div>
       <Show when={isSelectTooltipVisible() && isTooltipAllowed()}>
         <div
-          style={toolbarButtonTooltipWrapperStyles(
+          style={toolbarControlTooltipWrapperStyles(
             "[data-ui-grab-toolbar-toggle]",
           )}
         >
@@ -2181,7 +2116,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       </Show>
       <Show when={isCommentsTooltipVisible() && isTooltipAllowed()}>
         <div
-          style={toolbarButtonTooltipWrapperStyles(
+          style={toolbarControlTooltipWrapperStyles(
             "[data-ui-grab-toolbar-comments]",
           )}
         >
@@ -2196,7 +2131,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       </Show>
       <Show when={isToggleTooltipVisible() && isTooltipAllowed()}>
         <div
-          style={toolbarButtonTooltipWrapperStyles(
+          style={toolbarControlTooltipWrapperStyles(
             "[data-ui-grab-toolbar-enabled]",
           )}
         >
@@ -2217,32 +2152,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           !isResizing()
         }
       >
-        <div style={resizeTooltipWrapperStyles()}>
-          <div
-            ref={(element) => {
-              resizeTooltipBubbleRef = element;
-              updateBubbleSize(
-                element,
-                resizeTooltipScale(),
-                setResizeTooltipBubbleSize,
-              );
-            }}
+        <div
+          style={toolbarControlTooltipWrapperStyles(
+            "[data-ui-grab-toolbar-resize-handle]",
+          )}
+        >
+          <Tooltip
+            visible={true}
+            position={tooltipPosition()}
             data-ui-grab-toolbar-resize-tooltip
-            class={cn(
-              resizeTooltipBubbleClass,
-              "animate-tooltip-fade-in-static bg-white/96",
-            )}
-            style={{
-              transform: `scale(${resizeTooltipScale()})`,
-              "transform-origin":
-                resizeTooltipBubbleSize().width > 0 &&
-                resizeTooltipBubbleSize().height > 0
-                  ? "left top"
-                  : "center bottom",
-            }}
           >
             Drag to resize
-          </div>
+          </Tooltip>
         </div>
       </Show>
       <Show when={props.isActive && isSelectionHintReady()}>

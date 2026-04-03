@@ -666,46 +666,75 @@ test.describe("Toolbar", () => {
   });
 
   test.describe("Collapse/Expand", () => {
-    test("clicking collapse button should collapse toolbar", async ({
+    test("switching the enabled toggle off should collapse toolbar", async ({
       uiGrab,
     }) => {
       await expect
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
 
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
     });
 
-    test("clicking collapsed toolbar should expand it", async ({ uiGrab }) => {
+    test("clicking the collapsed orb should re-enable and expand it", async ({
+      uiGrab,
+    }) => {
       await expect
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
       await uiGrab.page.waitForTimeout(250);
 
-      await uiGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        const toolbar = root?.querySelector<HTMLElement>(
-          "[data-ui-grab-toolbar]",
-        );
-        const innerDiv = toolbar?.querySelector("div");
-        innerDiv?.click();
-      }, "data-ui-grab");
+      await uiGrab.clickToolbarCollapse();
 
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(false);
+
+      await uiGrab.clickToolbarToggle();
+      expect(await uiGrab.isOverlayVisible()).toBe(true);
+    });
+
+    test("re-enabling from the orb should restore the previous toolbar position", async ({
+      uiGrab,
+    }) => {
+      await expect
+        .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
+        .toBe(true);
+
+      const beforeDisable = await uiGrab.getToolbarInfo();
+      expect(beforeDisable.position).not.toBeNull();
+
+      await uiGrab.clickToolbarEnabled();
+      await expect
+        .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
+        .toBe(true);
+
+      await uiGrab.clickToolbarCollapse();
+      await expect
+        .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
+        .toBe(false);
+
+      const afterReenable = await uiGrab.getToolbarInfo();
+      expect(afterReenable.position).not.toBeNull();
+      expect(
+        Math.abs(
+          (afterReenable.position?.x ?? 0) - (beforeDisable.position?.x ?? 0),
+        ),
+      ).toBeLessThanOrEqual(CENTER_ALIGNMENT_TOLERANCE_PX);
+      expect(
+        Math.abs(
+          (afterReenable.position?.y ?? 0) - (beforeDisable.position?.y ?? 0),
+        ),
+      ).toBeLessThanOrEqual(CENTER_ALIGNMENT_TOLERANCE_PX);
     });
 
     test("collapsed bottom toolbar should collapse to the circular button footprint", async ({
@@ -715,7 +744,7 @@ test.describe("Toolbar", () => {
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
@@ -752,24 +781,20 @@ test.describe("Toolbar", () => {
       );
     });
 
-    test("collapsed toolbar should not allow activation toggle", async ({
+    test("collapsed orb should keep the overlay inactive", async ({
       uiGrab,
     }) => {
       await expect
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarToggle();
-
       const isActive = await uiGrab.isOverlayVisible();
-      const isCollapsed = await uiGrab.isToolbarCollapsed();
-
-      expect(isCollapsed || !isActive).toBe(true);
+      expect(isActive).toBe(false);
     });
   });
 
@@ -856,7 +881,7 @@ test.describe("Toolbar", () => {
     });
 
     test("should not drag when collapsed", async ({ uiGrab }) => {
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
@@ -971,6 +996,26 @@ test.describe("Toolbar", () => {
       expect(handleRect?.bottom ?? 0).toBeLessThanOrEqual(
         (toolbarRect?.bottom ?? 0) + 1,
       );
+    });
+
+    test("clicking the resize control should not collapse the toolbar", async ({
+      uiGrab,
+    }) => {
+      await uiGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const handle = root.querySelector<HTMLButtonElement>(
+          "[data-ui-grab-toolbar-resize-handle]",
+        );
+        handle?.click();
+      }, "data-ui-grab");
+
+      await expect
+        .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
+        .toBe(false);
     });
 
     test("should resize from the integrated trailing control and persist after reload", async ({
@@ -1348,7 +1393,7 @@ test.describe("Toolbar", () => {
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
@@ -1471,7 +1516,14 @@ test.describe("Toolbar", () => {
         .toBe(true);
 
       for (let i = 0; i < 5; i++) {
+        await uiGrab.clickToolbarEnabled();
+        await expect
+          .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
+          .toBe(true);
         await uiGrab.clickToolbarCollapse();
+        await expect
+          .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
+          .toBe(false);
       }
 
       const info = await uiGrab.getToolbarInfo();
@@ -1597,22 +1649,12 @@ test.describe("Toolbar", () => {
         .poll(() => uiGrab.isToolbarVisible(), { timeout: 3000 })
         .toBe(true);
 
-      await uiGrab.clickToolbarCollapse();
+      await uiGrab.clickToolbarEnabled();
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
         .toBe(true);
 
-      await uiGrab.page.evaluate((attrName) => {
-        const host = document.querySelector(`[${attrName}]`);
-        const shadowRoot = host?.shadowRoot;
-        if (!shadowRoot) return;
-        const root = shadowRoot.querySelector(`[${attrName}]`);
-        const toolbar = root?.querySelector<HTMLElement>(
-          "[data-ui-grab-toolbar]",
-        );
-        const innerDiv = toolbar?.querySelector("div");
-        innerDiv?.click();
-      }, "data-ui-grab");
+      await uiGrab.clickToolbarCollapse();
 
       await expect
         .poll(() => uiGrab.isToolbarCollapsed(), { timeout: 2000 })
@@ -1629,7 +1671,7 @@ test.describe("Toolbar", () => {
       // HACK: Wait for toggle animation to complete
       await uiGrab.page.waitForTimeout(200);
 
-      await uiGrab.clickToolbarEnabled();
+      await uiGrab.clickToolbarCollapse();
       // HACK: Wait for toggle animation to complete
       await uiGrab.page.waitForTimeout(200);
 

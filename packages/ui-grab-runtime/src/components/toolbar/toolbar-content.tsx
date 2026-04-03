@@ -73,7 +73,9 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     <button
       data-ui-grab-ignore-events
       data-ui-grab-toolbar-collapse
-      aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
+      aria-label={
+        props.enabled === false ? "Enable UI Grab" : "Expand toolbar"
+      }
       class={cn(
         "contain-layout relative shrink-0 flex items-center justify-center overflow-hidden cursor-pointer interactive-scale rounded-full border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.9)_0%,rgba(248,248,248,0.76)_52%,rgba(236,236,236,0.58)_100%)] shadow-[0_10px_24px_rgba(17,24,39,0.14),0_1px_0_rgba(255,255,255,0.72)_inset,0_-1px_0_rgba(255,255,255,0.3)_inset] backdrop-blur-[18px] transition-[background-color,box-shadow,transform] duration-150 hover:shadow-[0_12px_28px_rgba(17,24,39,0.16),0_1px_0_rgba(255,255,255,0.8)_inset,0_-1px_0_rgba(255,255,255,0.34)_inset]",
         "h-9 w-9",

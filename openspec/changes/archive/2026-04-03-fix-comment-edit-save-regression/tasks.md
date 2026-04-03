@@ -1,0 +1,5 @@
+- [x] inspect the existing comment edit submit flow
+- [x] fix the persisted comment update path
+- [x] add a focused regression test
+- [x] run typecheck and focused tests
+- [x] archive the change

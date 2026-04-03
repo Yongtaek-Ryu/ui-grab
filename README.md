@@ -147,9 +147,10 @@ if (process.env.NODE_ENV === "development") {
 
 ## Support
 
+- Maintainer: [kyleryu98](https://github.com/kyleryu98)
 - Repository: [kyleryu98/ui-grab](https://github.com/kyleryu98/ui-grab)
 - Issues: [GitHub Issues](https://github.com/kyleryu98/ui-grab/issues)
 
 ## License
 
-UI Grab is distributed under the MIT license. Keep the original copyright notice and license text when redistributing forked code.
+UI Grab is distributed under the MIT license. Keep the license text and any existing copyright notices when redistributing copies or derivatives.

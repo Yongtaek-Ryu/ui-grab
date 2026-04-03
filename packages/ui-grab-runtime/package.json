@@ -2,7 +2,7 @@
   "name": "@ui-grab/runtime",
   "version": "0.1.35",
   "private": true,
-  "description": "Internal runtime source for the UI Grab fork",
+  "description": "Internal runtime source for UI Grab",
   "keywords": ["agent", "context", "grab", "react", "ui-grab", "runtime"],
   "homepage": "https://github.com/kyleryu98/ui-grab",
   "bugs": {
@@ -10,8 +10,7 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Aiden Bai",
-    "email": "aiden@million.dev"
+    "name": "Yongtaek Ryu"
   },
   "repository": {
     "type": "git",

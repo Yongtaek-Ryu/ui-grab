@@ -58,9 +58,9 @@ const NestedCard = ({
 const DeeplyNested = () => {
   return (
     <NestedCard title="Outer Card">
-      <NestedCard title="Middle Card">
-        <NestedCard title="Inner Card">
-          <p data-testid="deeply-nested-text">This is deeply nested content</p>
+      <NestedCard title="중간 카드">
+        <NestedCard title="내부 카드">
+          <p data-testid="deeply-nested-text">이곳은 깊게 중첩된 콘텐츠입니다</p>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
             data-testid="nested-button"
@@ -533,7 +533,7 @@ const ModalDialogSection = () => {
           >
             <h3 className="text-lg font-bold mb-2">Modal Title</h3>
             <p className="mb-4">
-              Click inside here while React Grab is active. The modal should NOT
+              Click inside here while UI Grab is active. The modal should NOT
               close.
             </p>
             <button
@@ -688,7 +688,7 @@ export default function App() {
 
       <header className="mb-4">
         <h1 className="text-2xl font-bold" data-testid="main-title">
-          React Grab E2E Test Page
+          UI Grab E2E Test Page
         </h1>
         <p className="text-gray-600" data-testid="main-description">
           Comprehensive test page for E2E testing

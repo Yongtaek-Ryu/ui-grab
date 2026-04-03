@@ -2,7 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { init } from "ui-grab";
 import "./index.css";
-import App from "./App.tsx";
+import "./sample.css";
+import { SamplePage } from "./sample-page.tsx";
 
 declare global {
   interface Window {
@@ -14,6 +15,6 @@ window.initUiGrab = init;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <SamplePage />
   </StrictMode>,
 );

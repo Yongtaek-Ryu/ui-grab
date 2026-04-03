@@ -1,16 +1,22 @@
 {
-  "name": "@react-grab/e2e-app",
+  "name": "@ui-grab/e2e-app",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../../scripts/dev-e2e-app.mjs",
+    "dev:raw": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@medv/finder": "^4.0.2",
+    "bippy": "^0.5.32",
+    "clsx": "^2.1.1",
+    "element-source": "^0.0.3",
     "react": "19.1.2",
     "react-dom": "19.1.2",
-    "react-grab": "workspace:*"
+    "solid-js": "^1.9.10",
+    "ui-grab": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.0.0-beta.8",
@@ -19,6 +25,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "4.0.0-beta.8",
     "typescript": "^5.7.3",
-    "vite": "^6.0.2"
+    "vite": "^6.0.2",
+    "vite-plugin-solid": "^2.11.11"
   }
 }

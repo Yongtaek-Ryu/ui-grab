@@ -159,15 +159,13 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Item Selection", () => {
-    test("should enter prompt mode with comment text when pressing Enter on a selected comment item", async ({
+    test("should enter prompt mode with comment text when clicking a comment item", async ({
       uiGrab,
     }) => {
       await copyElement(uiGrab, "li:first-child");
 
       await uiGrab.clickCommentsButton();
       await uiGrab.clickCommentItem(0);
-      await uiGrab.page.waitForTimeout(100);
-      await uiGrab.pressEnter();
 
       await expect
         .poll(() => uiGrab.isPromptModeActive(), { timeout: 3000 })
@@ -188,6 +186,22 @@ test.describe("Comment Items", () => {
       await uiGrab.clickCommentItem(0);
 
       expect(await uiGrab.isCommentsDropdownVisible()).toBe(true);
+    });
+
+    test("should not copy comment content when clicking a comment row", async ({
+      uiGrab,
+    }) => {
+      await copyElement(uiGrab, "li:first-child");
+      await uiGrab.page.evaluate(() => navigator.clipboard.writeText("seed"));
+
+      await uiGrab.clickCommentsButton();
+      await uiGrab.clickCommentItem(0);
+
+      await expect
+        .poll(() => uiGrab.isPromptModeActive(), { timeout: 3000 })
+        .toBe(true);
+
+      expect(await uiGrab.getClipboardContent()).toBe("seed");
     });
   });
 
@@ -233,8 +247,6 @@ test.describe("Comment Items", () => {
 
       await uiGrab.clickCommentsButton();
       await uiGrab.clickCommentItem(0);
-      await uiGrab.page.waitForTimeout(100);
-      await uiGrab.pressEnter();
 
       await expect
         .poll(() => uiGrab.isPromptModeActive(), { timeout: 3000 })
@@ -265,6 +277,43 @@ test.describe("Comment Items", () => {
       expect(afterItems[0]?.content.startsWith("updated comment\n\n")).toBe(
         true,
       );
+    });
+
+    test("should copy the updated comment content only from the row copy action", async ({
+      uiGrab,
+    }) => {
+      await copyElement(uiGrab, "li:first-child");
+
+      await uiGrab.clickCommentsButton();
+      await uiGrab.clickCommentItem(0);
+
+      await expect
+        .poll(() => uiGrab.isPromptModeActive(), { timeout: 3000 })
+        .toBe(true);
+
+      await uiGrab.clearInput();
+      await uiGrab.typeInInput("edited copy text");
+      await uiGrab.page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return;
+        const submitButton = root.querySelector<HTMLButtonElement>(
+          "[data-ui-grab-submit]",
+        );
+        submitButton?.click();
+      }, "data-ui-grab");
+
+      await expect
+        .poll(() => uiGrab.isPromptModeActive(), { timeout: 5000 })
+        .toBe(false);
+
+      await uiGrab.page.evaluate(() => navigator.clipboard.writeText(""));
+      await uiGrab.clickCommentItemCopy(0);
+
+      const clipboardContent = await uiGrab.getClipboardContent();
+      expect(clipboardContent).toContain("edited copy text");
     });
   });
 
@@ -644,6 +693,69 @@ test.describe("Comment Items", () => {
     });
   });
 
+  test.describe("Accessibility Scaling", () => {
+    test("should enlarge the comments dropdown when the toolbar is resized larger", async ({
+      uiGrab,
+    }) => {
+      await copyElement(uiGrab, "li:first-child");
+      await uiGrab.clickCommentsButton();
+
+      const beforeMetrics = await uiGrab.getCommentsDropdownMetrics();
+      expect(beforeMetrics).not.toBeNull();
+
+      await uiGrab.dragToolbarResizeHandle(36, -24);
+
+      await expect
+        .poll(async () => {
+          const metrics = await uiGrab.getCommentsDropdownMetrics();
+          return metrics?.width ?? 0;
+        })
+        .toBeGreaterThan((beforeMetrics?.width ?? 0) + 8);
+
+      await expect
+        .poll(async () => {
+          const metrics = await uiGrab.getCommentsDropdownMetrics();
+          return metrics?.headerFontSize ?? 0;
+        })
+        .toBeGreaterThan((beforeMetrics?.headerFontSize ?? 0) + 0.5);
+
+      await expect
+        .poll(async () => {
+          const metrics = await uiGrab.getCommentsDropdownMetrics();
+          return metrics?.actionButtonHeight ?? 0;
+        })
+        .toBeGreaterThan((beforeMetrics?.actionButtonHeight ?? 0) + 1.5);
+    });
+
+    test("should reduce the comments dropdown baseline size when the toolbar scale is smaller", async ({
+      uiGrab,
+    }) => {
+      await copyElement(uiGrab, "li:first-child");
+      await uiGrab.clickCommentsButton();
+
+      const defaultMetrics = await uiGrab.getCommentsDropdownMetrics();
+      expect(defaultMetrics).not.toBeNull();
+
+      await uiGrab.page.evaluate(() => {
+        window.__UI_GRAB__?.setToolbarState({ scale: 0.9 });
+      });
+
+      await expect
+        .poll(async () => {
+          const metrics = await uiGrab.getCommentsDropdownMetrics();
+          return metrics?.width ?? 0;
+        })
+        .toBeLessThan((defaultMetrics?.width ?? 0) - 8);
+
+      await expect
+        .poll(async () => {
+          const metrics = await uiGrab.getCommentsDropdownMetrics();
+          return metrics?.rowTitleFontSize ?? 0;
+        })
+        .toBeLessThan((defaultMetrics?.rowTitleFontSize ?? 0) - 0.5);
+    });
+  });
+
   test.describe("Persistence Across Copies", () => {
     test("should accumulate items across multiple copy operations", async ({
       uiGrab,
@@ -784,7 +896,7 @@ test.describe("Comment Items", () => {
   });
 
   test.describe("Preview Suppression After Copy", () => {
-    test("should clear hover preview boxes after copying via row click", async ({
+    test("should clear hover preview boxes after entering edit mode via row click", async ({
       uiGrab,
     }) => {
       await copyElement(uiGrab, "li:first-child");
@@ -938,7 +1050,7 @@ test.describe("Comment Items", () => {
         )
         .toBeGreaterThan(0);
 
-      await uiGrab.clickCommentItem(0);
+      await uiGrab.clickCommentItemCopy(0);
 
       await expect
         .poll(
@@ -964,7 +1076,7 @@ test.describe("Comment Items", () => {
         .toBeGreaterThanOrEqual(1);
     });
 
-    test("should clear idle labels and show copied label after row click", async ({
+    test("should clear idle labels without showing copied feedback after row click edit", async ({
       uiGrab,
     }) => {
       await copyElement(uiGrab, "li:first-child");
@@ -1007,7 +1119,9 @@ test.describe("Comment Items", () => {
           },
           { timeout: 5000 },
         )
-        .toBeGreaterThanOrEqual(1);
+        .toBe(0);
+
+      expect(await uiGrab.isPromptModeActive()).toBe(true);
     });
   });
 });

@@ -125,7 +125,7 @@ test.describe("Comment selector reacquire", () => {
     expectCloseTo(hoverBox!.bounds.height, afterRect!.height, 8);
   });
 
-  test("should show copied label feedback when selecting a reacquired comment item", async ({
+  test("should show copied label feedback when copying a reacquired comment item", async ({
     uiGrab,
   }) => {
     const toggleableSelector = '[data-testid="toggleable-element"]';
@@ -145,7 +145,7 @@ test.describe("Comment selector reacquire", () => {
     await expect(uiGrab.page.locator(toggleableSelector)).toHaveCount(1);
 
     await uiGrab.clickCommentsButton();
-    await uiGrab.clickCommentItem(0);
+    await uiGrab.clickCommentItemCopy(0);
 
     await expect
       .poll(async () => {

@@ -89,6 +89,7 @@ export const UiGrabRenderer: Component<UiGrabRendererProps> = (props) => {
               supportsUndo={props.supportsUndo}
               supportsFollowUp={props.supportsFollowUp}
               dismissButtonText={props.dismissButtonText}
+              toolbarScale={props.toolbarScale}
               onAbort={() => props.onRequestAbortSession?.(session().id)}
               onDismiss={
                 session().isStreaming
@@ -135,6 +136,7 @@ export const UiGrabRenderer: Component<UiGrabRendererProps> = (props) => {
           replyToPrompt={props.replyToPrompt}
           hasAgent={props.hasAgent}
           status={props.selectionLabelStatus}
+          toolbarScale={props.toolbarScale}
           actionCycleState={props.selectionActionCycleState}
           arrowNavigationState={props.selectionArrowNavigationState}
           onArrowNavigationSelect={props.onArrowNavigationSelect}
@@ -171,6 +173,7 @@ export const UiGrabRenderer: Component<UiGrabRendererProps> = (props) => {
             hasAgent={Boolean(instance().statusText)}
             isPromptMode={instance().isPromptMode}
             inputValue={instance().inputValue}
+            toolbarScale={props.toolbarScale}
             error={instance().errorMessage}
             hideArrow={instance().hideArrow}
             onShowContextMenu={(() => {
@@ -250,7 +253,6 @@ export const UiGrabRenderer: Component<UiGrabRendererProps> = (props) => {
         disconnectedItemIds={props.commentsDisconnectedItemIds}
         activeItemId={props.activeCommentItemId ?? null}
         onActivateItem={props.onActivateCommentItem}
-        onSelectItem={props.onCommentItemSelect}
         onEditItem={props.onCommentItemEdit}
         onCopyItem={props.onCommentItemCopy}
         onDeleteItem={props.onCommentItemDelete}

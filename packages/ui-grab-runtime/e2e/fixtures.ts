@@ -83,6 +83,14 @@ interface CommentsDropdownInfo {
   itemCount: number;
 }
 
+interface CommentsDropdownMetrics {
+  width: number;
+  height: number;
+  headerFontSize: number;
+  actionButtonHeight: number;
+  rowTitleFontSize: number;
+}
+
 export interface UiGrabPageObject {
   page: Page;
   modifierKey: "Meta" | "Control";
@@ -167,6 +175,7 @@ export interface UiGrabPageObject {
     left: number;
     top: number;
   } | null>;
+  getCommentsDropdownMetrics: () => Promise<CommentsDropdownMetrics | null>;
 
   getSelectionLabelInfo: () => Promise<SelectionLabelInfo>;
   getSelectionLabelBounds: () => Promise<SelectionLabelBounds | null>;
@@ -979,6 +988,28 @@ const createUiGrabPageObject = (page: Page): UiGrabPageObject => {
   };
 
   const dragToolbarResizeHandle = async (deltaX: number, deltaY: number) => {
+    const toolbarRect = await page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
+      const shadowRoot = host?.shadowRoot;
+      if (!shadowRoot) return null;
+      const root = shadowRoot.querySelector(`[${attrName}]`);
+      if (!root) return null;
+      const toolbar = root.querySelector<HTMLElement>(
+        "[data-ui-grab-toolbar-shell]",
+      );
+      if (!toolbar) return null;
+      const rect = toolbar.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }, ATTRIBUTE_NAME);
+
+    if (!toolbarRect) return;
+
+    await page.mouse.move(
+      toolbarRect.x + toolbarRect.width / 2,
+      toolbarRect.y + toolbarRect.height / 2,
+    );
+    await page.waitForTimeout(100);
+
     const handleRect = await page.evaluate((attrName) => {
       const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
@@ -1474,6 +1505,46 @@ const createUiGrabPageObject = (page: Page): UiGrabPageObject => {
       };
     }, ATTRIBUTE_NAME);
   };
+
+  const getCommentsDropdownMetrics =
+    async (): Promise<CommentsDropdownMetrics | null> => {
+      return page.evaluate((attrName) => {
+        const host = document.querySelector(`[${attrName}]`);
+        const shadowRoot = host?.shadowRoot;
+        if (!shadowRoot) return null;
+        const root = shadowRoot.querySelector(`[${attrName}]`);
+        if (!root) return null;
+        const dropdown = root.querySelector<HTMLElement>(
+          "[data-ui-grab-comments-dropdown]",
+        );
+        if (!dropdown) return null;
+
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const header = dropdown.querySelector<HTMLElement>(
+          "span.text-black\\/40",
+        );
+        const copyAllButton = dropdown.querySelector<HTMLElement>(
+          "[data-ui-grab-comments-copy-all]",
+        );
+        const rowTitle = dropdown.querySelector<HTMLElement>(
+          "[data-ui-grab-comment-item] .text-black",
+        );
+
+        return {
+          width: dropdownRect.width,
+          height: dropdownRect.height,
+          headerFontSize: header
+            ? parseFloat(getComputedStyle(header).fontSize)
+            : 0,
+          actionButtonHeight: copyAllButton
+            ? copyAllButton.getBoundingClientRect().height
+            : 0,
+          rowTitleFontSize: rowTitle
+            ? parseFloat(getComputedStyle(rowTitle).fontSize)
+            : 0,
+        };
+      }, ATTRIBUTE_NAME);
+    };
 
   const getSelectionLabelInfo = async (): Promise<SelectionLabelInfo> => {
     return page.evaluate((attrName) => {
@@ -2561,6 +2632,7 @@ const createUiGrabPageObject = (page: Page): UiGrabPageObject => {
     confirmClearCommentsPrompt,
     cancelClearCommentsPrompt,
     getCommentsDropdownPosition,
+    getCommentsDropdownMetrics,
 
     getSelectionLabelInfo,
     getSelectionLabelBounds,

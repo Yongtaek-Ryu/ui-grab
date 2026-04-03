@@ -79,6 +79,7 @@ import {
   PREVIEW_TEXT_MAX_LENGTH,
   NEXTJS_REVALIDATION_DELAY_MS,
   TOOLBAR_DEFAULT_POSITION_RATIO,
+  TOOLBAR_DEFAULT_SCALE,
   DEFAULT_ACTION_ID,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -3977,6 +3978,8 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
       if (!toolbarElement) return null;
       const toolbarRect = toolbarElement.getBoundingClientRect();
       const edge = getNearestEdge(toolbarRect);
+      const toolbarScale =
+        currentToolbarState()?.scale ?? TOOLBAR_DEFAULT_SCALE;
 
       if (edge === "left" || edge === "right") {
         return {
@@ -3984,6 +3987,7 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
           y: toolbarRect.top + toolbarRect.height / 2,
           edge,
           toolbarWidth: toolbarRect.width,
+          toolbarScale,
         };
       }
 
@@ -3992,6 +3996,7 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
         y: edge === "top" ? toolbarRect.bottom : toolbarRect.top,
         edge,
         toolbarWidth: toolbarRect.width,
+        toolbarScale,
       };
     };
 
@@ -4131,17 +4136,6 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
         );
         if (labelId) scheduleLabelFade(labelId);
       });
-    };
-
-    const handleCommentItemSelect = (item: CommentItem) => {
-      clearCommentsHoverPreviews();
-      if (isPromptMode()) {
-        actions.exitPromptMode();
-        actions.clearInputText();
-        actions.clearReplySessionId();
-      }
-      setEditingCommentItemId(null);
-      copyCommentItemContent(item);
     };
 
     const handleCommentItemEdit = (item: CommentItem) => {
@@ -4405,6 +4399,9 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
                 supportsUndo={store.supportsUndo}
                 supportsFollowUp={store.supportsFollowUp}
                 dismissButtonText={store.dismissButtonText}
+                toolbarScale={
+                  currentToolbarState()?.scale ?? TOOLBAR_DEFAULT_SCALE
+                }
                 onDismissSession={agentManager.session.dismiss}
                 onUndoSession={agentManager.session.undo}
                 onFollowUpSubmitSession={handleFollowUpSubmit}
@@ -4471,7 +4468,6 @@ export const init = (rawOptions?: Options): UiGrabAPI => {
                 onCommentsButtonHover={handleCommentsButtonHover}
                 activeCommentItemId={activeCommentItemId()}
                 onActivateCommentItem={handleActivateCommentItem}
-                onCommentItemSelect={handleCommentItemSelect}
                 onCommentItemEdit={handleCommentItemEdit}
                 onCommentItemCopy={copyCommentItemContent}
                 onCommentItemDelete={handleCommentItemDelete}

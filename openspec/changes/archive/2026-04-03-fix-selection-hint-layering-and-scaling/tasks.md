@@ -1,0 +1,5 @@
+- [x] inspect selection hint and prompt layering/scale paths
+- [x] implement higher overlay depth and scalable hint tokens
+- [x] add focused regression coverage
+- [x] run typecheck and focused tests
+- [x] archive the change

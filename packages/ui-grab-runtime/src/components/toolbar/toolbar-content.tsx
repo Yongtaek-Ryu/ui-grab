@@ -103,6 +103,7 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
 
   return (
     <div
+      data-ui-grab-toolbar-shell
       class={cn(
         "inline-flex items-center justify-between rounded-[14px] antialiased relative overflow-hidden [font-synthesis:none] [corner-shape:superellipse(1.25)] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(247,247,247,0.56)_48%,rgba(238,238,238,0.4)_100%)] shadow-[0_12px_28px_rgba(17,24,39,0.14),0_2px_6px_rgba(255,255,255,0.66)_inset,0_-1px_0_rgba(255,255,255,0.28)_inset] backdrop-blur-[22px]",
         isVertical() && "flex-col",
@@ -120,12 +121,14 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <span class="pointer-events-none absolute inset-x-[8%] top-0 h-[44%] rounded-full bg-white/45 blur-[10px] opacity-55" />
       <div
         class={cn(
-          "relative z-10 grid overflow-visible",
+          "relative z-10 grid",
+          props.isCollapsed ? "overflow-hidden" : "overflow-visible",
+          isVertical() ? "min-h-0" : "min-w-0",
           gridSizeTransitionClass(),
           props.isCollapsed
             ? isVertical()
-              ? "grid-rows-[0fr] pointer-events-none"
-              : "grid-cols-[0fr] pointer-events-none"
+              ? "grid-rows-[0fr] h-0 pointer-events-none"
+              : "grid-cols-[0fr] w-0 pointer-events-none"
             : isVertical()
               ? "grid-rows-[1fr]"
               : "grid-cols-[1fr]",
@@ -180,9 +183,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
       <div
         class={cn(
           "relative z-10 shrink-0 flex",
-          isVertical()
-            ? "flex-col items-center gap-[6px] pt-[6px]"
-            : "items-center gap-[5px] pl-[6px]",
+          props.isCollapsed
+            ? "items-center justify-center"
+            : isVertical()
+              ? "flex-col items-center gap-[6px] pt-[6px]"
+              : "items-center gap-[5px] pl-[6px]",
         )}
       >
         {props.collapseButton ?? defaultCollapseButton()}

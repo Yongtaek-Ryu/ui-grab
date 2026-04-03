@@ -18,6 +18,9 @@ import {
   LABEL_GAP_PX,
   SELECTION_LABEL_OFFSCREEN_PX,
   TEXTAREA_MAX_HEIGHT_PX,
+  TOOLBAR_DEFAULT_SCALE,
+  TOOLBAR_MAX_SCALE,
+  TOOLBAR_MIN_SCALE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
@@ -88,6 +91,13 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const isCompletedStatus = () =>
     props.status === "copied" || props.status === "fading";
 
+  const toolbarScale = createMemo(() =>
+    Math.min(
+      TOOLBAR_MAX_SCALE,
+      Math.max(TOOLBAR_MIN_SCALE, props.toolbarScale ?? TOOLBAR_DEFAULT_SCALE),
+    ),
+  );
+
   const shouldCenterOnSelection = () =>
     props.isPromptMode || props.status === "copying" || isCompletedStatus();
 
@@ -143,23 +153,21 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   onMount(() => {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const rect = entry.target.getBoundingClientRect();
         if (entry.target === containerRef && !isTagCurrentlyHovered) {
-          setMeasuredWidth(rect.width);
-          setMeasuredHeight(rect.height);
+          setMeasuredWidth(containerRef?.offsetWidth ?? 0);
+          setMeasuredHeight(containerRef?.offsetHeight ?? 0);
         } else if (entry.target === panelRef) {
-          setPanelWidth(rect.width);
+          setPanelWidth(panelRef?.offsetWidth ?? 0);
         }
       }
     });
     if (containerRef) {
-      const rect = containerRef.getBoundingClientRect();
-      setMeasuredWidth(rect.width);
-      setMeasuredHeight(rect.height);
+      setMeasuredWidth(containerRef.offsetWidth);
+      setMeasuredHeight(containerRef.offsetHeight);
       resizeObserver.observe(containerRef);
     }
     if (panelRef) {
-      setPanelWidth(panelRef.getBoundingClientRect().width);
+      setPanelWidth(panelRef.offsetWidth);
       resizeObserver.observe(panelRef);
     }
     window.addEventListener("scroll", handleViewportChange, true);
@@ -199,8 +207,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         : previousResult;
 
       const bounds = props.selectionBounds;
-      const labelWidth = measuredWidth();
-      const labelHeight = measuredHeight();
+      const scale = toolbarScale();
+      const labelWidth = measuredWidth() * scale;
+      const labelHeight = measuredHeight() * scale;
       const hasMeasurements = labelWidth > 0 && labelHeight > 0;
       const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
 
@@ -245,7 +254,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
       const actualArrowHeight = props.hideArrow
         ? 0
-        : getArrowSize(panelWidth());
+        : getArrowSize(panelWidth()) * scale;
 
       // HACK: Use cursorX as anchor point, CSS transform handles centering via translateX(-50%)
       // This avoids the flicker when content changes because centering doesn't depend on JS measurement
@@ -417,69 +426,260 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         onMouseEnter={() => props.onHoverChange?.(true)}
         onMouseLeave={() => props.onHoverChange?.(false)}
       >
-        <Show when={!props.hideArrow}>
-          <Arrow
-            position={arrowPosition()}
-            leftPercent={positionComputation().position.arrowLeftPercent}
-            leftOffsetPx={positionComputation().position.arrowLeftOffset}
-            labelWidth={panelWidth()}
-            color={GLASS_ARROW_COLOR}
-          />
-        </Show>
-
-        <Show when={isCompletedStatus() && !props.error}>
-          <CompletionView
-            statusText={
-              props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
-            }
-            supportsUndo={props.supportsUndo}
-            supportsFollowUp={props.supportsFollowUp}
-            dismissButtonText={props.dismissButtonText}
-            previousPrompt={props.previousPrompt}
-            onDismiss={props.onDismiss}
-            onUndo={props.onUndo}
-            onFollowUpSubmit={props.onFollowUpSubmit}
-            onFadingChange={setIsInternalFading}
-            onShowContextMenu={props.onShowContextMenu}
-          />
-        </Show>
-
         <div
-          ref={panelRef}
-          class={cn(
-            "contain-layout flex items-center gap-[5px] rounded-[14px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)] overflow-hidden",
-            isShaking() && "animate-shake",
-          )}
+          data-ui-grab-selection-label-surface
+          class="relative w-fit h-fit"
           style={{
-            display: isCompletedStatus() && !props.error ? "none" : undefined,
-            background: `linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, ${GLASS_SURFACE_COLOR} 100%)`,
-            border: `1px solid ${GLASS_BORDER_COLOR}`,
-            "box-shadow": GLASS_PANEL_SHADOW,
-            "backdrop-filter": "blur(20px) saturate(150%)",
-            "-webkit-backdrop-filter": "blur(20px) saturate(150%)",
+            transform: `scale(${toolbarScale()})`,
+            "transform-origin":
+              arrowPosition() === "bottom" ? "top center" : "bottom center",
           }}
-          onAnimationEnd={() => setIsShaking(false)}
         >
-          <Show when={props.status === "copying" && !props.isPendingAbort}>
-            <div
-              class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
-              classList={{
-                "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
-              }}
-            >
-              <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
-                <IconLoader size={13} class="text-[#71717a] shrink-0" />
-                <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
-                  {props.statusText ?? "Grabbing…"}
-                </span>
+          <Show when={!props.hideArrow}>
+            <Arrow
+              position={arrowPosition()}
+              leftPercent={positionComputation().position.arrowLeftPercent}
+              leftOffsetPx={positionComputation().position.arrowLeftOffset}
+              labelWidth={panelWidth()}
+              color={GLASS_ARROW_COLOR}
+            />
+          </Show>
+
+          <Show when={isCompletedStatus() && !props.error}>
+            <CompletionView
+              statusText={
+                props.hasAgent ? (props.statusText ?? "Completed") : "Copied"
+              }
+              supportsUndo={props.supportsUndo}
+              supportsFollowUp={props.supportsFollowUp}
+              dismissButtonText={props.dismissButtonText}
+              previousPrompt={props.previousPrompt}
+              onDismiss={props.onDismiss}
+              onUndo={props.onUndo}
+              onFollowUpSubmit={props.onFollowUpSubmit}
+              onFadingChange={setIsInternalFading}
+              onShowContextMenu={props.onShowContextMenu}
+            />
+          </Show>
+
+          <div
+            ref={panelRef}
+            class={cn(
+              "contain-layout flex items-center gap-[5px] rounded-[14px] antialiased w-fit h-fit p-0 [font-synthesis:none] [corner-shape:superellipse(1.25)] overflow-hidden",
+              isShaking() && "animate-shake",
+            )}
+            style={{
+              display: isCompletedStatus() && !props.error ? "none" : undefined,
+              background: `linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, ${GLASS_SURFACE_COLOR} 100%)`,
+              border: `1px solid ${GLASS_BORDER_COLOR}`,
+              "box-shadow": GLASS_PANEL_SHADOW,
+              "backdrop-filter": "blur(20px) saturate(150%)",
+              "-webkit-backdrop-filter": "blur(20px) saturate(150%)",
+            }}
+            onAnimationEnd={() => setIsShaking(false)}
+          >
+            <Show when={props.status === "copying" && !props.isPendingAbort}>
+              <div
+                class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]"
+                classList={{
+                  "min-w-[150px]": Boolean(props.hasAgent && props.inputValue),
+                }}
+              >
+                <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
+                  <IconLoader size={13} class="text-[#71717a] shrink-0" />
+                  <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
+                    {props.statusText ?? "Grabbing…"}
+                  </span>
+                </div>
+                <Show when={props.hasAgent && props.inputValue}>
+                  <BottomSection>
+                    <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                      <textarea
+                        ref={inputRef}
+                        data-ui-grab-ignore-events
+                        class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                        style={{
+                          "field-sizing": "content",
+                          "min-height": "16px",
+                          "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
+                          "scrollbar-width": "none",
+                        }}
+                        value={props.inputValue ?? ""}
+                        placeholder="Add context"
+                        rows={1}
+                        disabled
+                      />
+                      <Show when={props.onAbort}>
+                        <button
+                          data-ui-grab-ignore-events
+                          data-ui-grab-abort
+                          class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black/72 cursor-pointer ml-1 interactive-scale"
+                          style={{
+                            "box-shadow":
+                              "inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(15,23,42,0.16)",
+                          }}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            props.onAbort?.();
+                          }}
+                        >
+                          <div class="size-1.5 bg-white rounded-[1px]" />
+                        </button>
+                      </Show>
+                    </div>
+                  </BottomSection>
+                </Show>
               </div>
-              <Show when={props.hasAgent && props.inputValue}>
+            </Show>
+
+            <Show when={props.status === "copying" && props.isPendingAbort}>
+              <DiscardPrompt
+                onConfirm={props.onConfirmAbort}
+                onCancel={props.onCancelAbort}
+              />
+            </Show>
+
+            <Show when={canInteract() && !props.isPromptMode}>
+              <div
+                class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
+                classList={{
+                  "min-w-[100px]":
+                    isArrowNavigationVisible() || isInspectNavigationVisible(),
+                }}
+              >
+                <div
+                  class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
+                  classList={{
+                    "py-1.5":
+                      !isArrowNavigationVisible() &&
+                      !isInspectNavigationVisible(),
+                    "pt-1.5 pb-1":
+                      isArrowNavigationVisible() ||
+                      isInspectNavigationVisible(),
+                  }}
+                >
+                  <TagBadge
+                    tagName={tagDisplayResult().tagName}
+                    componentName={tagDisplayResult().componentName}
+                    isClickable={Boolean(props.filePath && props.onOpen)}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    shrink
+                    forceShowIcon={
+                      isArrowNavigationVisible() || isInspectNavigationVisible()
+                        ? Boolean(props.filePath && props.onOpen)
+                        : Boolean(props.isContextMenuOpen)
+                    }
+                  />
+                </div>
+                <Show when={props.arrowNavigationState?.isVisible}>
+                  <ArrowNavigationMenu
+                    items={props.arrowNavigationState!.items}
+                    activeIndex={props.arrowNavigationState!.activeIndex}
+                    onSelect={(index) => props.onArrowNavigationSelect?.(index)}
+                  />
+                </Show>
+                <Show
+                  when={
+                    !isArrowNavigationVisible() &&
+                    isInspectNavigationVisible() &&
+                    props.inspectNavigationState
+                  }
+                >
+                  {(state) => (
+                    <ArrowNavigationMenu
+                      items={state().items}
+                      activeIndex={state().activeIndex}
+                      onSelect={(index) => props.onInspectSelect?.(index)}
+                    />
+                  )}
+                </Show>
+                <Show
+                  when={
+                    !isArrowNavigationVisible() &&
+                    !isInspectNavigationVisible() &&
+                    Boolean(props.actionCycleState?.isVisible)
+                  }
+                >
+                  <BottomSection>
+                    <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
+                      <For each={props.actionCycleState?.items ?? []}>
+                        {(item, itemIndex) => (
+                          <div
+                            data-ui-grab-action-cycle-item={item.label.toLowerCase()}
+                            class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
+                            classList={{
+                              "bg-black/5":
+                                itemIndex() ===
+                                (props.actionCycleState?.activeIndex ?? 0),
+                              "rounded-b-[6px]":
+                                itemIndex() ===
+                                (props.actionCycleState?.items ?? []).length -
+                                  1,
+                            }}
+                          >
+                            <span class="text-[13px] leading-4 font-sans font-medium text-black">
+                              {item.label}
+                            </span>
+                            <Show when={item.shortcut}>
+                              <span class="text-[11px] font-sans text-black/50 ml-4">
+                                {formatShortcut(item.shortcut!)}
+                              </span>
+                            </Show>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </BottomSection>
+                </Show>
+              </div>
+            </Show>
+
+            <Show
+              when={
+                canInteract() && props.isPromptMode && !props.isPendingDismiss
+              }
+            >
+              <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
+                <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
+                  <TagBadge
+                    tagName={tagDisplayResult().tagName}
+                    componentName={tagDisplayResult().componentName}
+                    isClickable={Boolean(props.filePath && props.onOpen)}
+                    onClick={handleTagClick}
+                    onHoverChange={handleTagHoverChange}
+                    forceShowIcon
+                  />
+                </div>
                 <BottomSection>
-                  <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                  <Show when={props.replyToPrompt}>
+                    <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
+                      <IconReply size={10} class="text-black/30 shrink-0" />
+                      <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
+                        {props.replyToPrompt}
+                      </span>
+                    </div>
+                  </Show>
+                  <div
+                    class="shrink-0 flex justify-between items-end w-full min-h-4"
+                    style={{
+                      "padding-left": props.replyToPrompt ? "14px" : "0",
+                    }}
+                  >
                     <textarea
-                      ref={inputRef}
+                      ref={(element) => {
+                        inputRef = element;
+                        if (props.onSubmit) {
+                          queueMicrotask(() => {
+                            element.focus({ preventScroll: true });
+                            autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
+                          });
+                        }
+                      }}
                       data-ui-grab-ignore-events
-                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 opacity-50 wrap-break-word overflow-y-auto"
+                      data-ui-grab-input
+                      class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
                       style={{
                         "field-sizing": "content",
                         "min-height": "16px",
@@ -487,225 +687,48 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         "scrollbar-width": "none",
                       }}
                       value={props.inputValue ?? ""}
+                      onInput={handleInput}
+                      onKeyDown={handleKeyDown}
                       placeholder="Add context"
                       rows={1}
-                      disabled
+                      readOnly={!props.onSubmit}
                     />
-                    <Show when={props.onAbort}>
+                    <Show when={props.onSubmit}>
                       <button
-                        data-ui-grab-ignore-events
-                        data-ui-grab-abort
+                        data-ui-grab-submit
                         class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black/72 cursor-pointer ml-1 interactive-scale"
                         style={{
                           "box-shadow":
                             "inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(15,23,42,0.16)",
                         }}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          props.onAbort?.();
-                        }}
+                        onClick={() => props.onSubmit?.()}
                       >
-                        <div class="size-1.5 bg-white rounded-[1px]" />
+                        <IconSubmit size={10} class="text-white" />
                       </button>
                     </Show>
                   </div>
                 </BottomSection>
-              </Show>
-            </div>
-          </Show>
+              </div>
+            </Show>
 
-          <Show when={props.status === "copying" && props.isPendingAbort}>
-            <DiscardPrompt
-              onConfirm={props.onConfirmAbort}
-              onCancel={props.onCancelAbort}
-            />
-          </Show>
-
-          <Show when={canInteract() && !props.isPromptMode}>
-            <div
-              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
-              classList={{
-                "min-w-[100px]":
-                  isArrowNavigationVisible() || isInspectNavigationVisible(),
-              }}
-            >
-              <div
-                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
-                classList={{
-                  "py-1.5":
-                    !isArrowNavigationVisible() &&
-                    !isInspectNavigationVisible(),
-                  "pt-1.5 pb-1":
-                    isArrowNavigationVisible() || isInspectNavigationVisible(),
+            <Show when={props.isPendingDismiss}>
+              <DiscardPrompt
+                onConfirm={props.onConfirmDismiss}
+                onCancel={() => {
+                  props.onCancelDismiss?.();
+                  inputRef?.focus({ preventScroll: true });
                 }}
-              >
-                <TagBadge
-                  tagName={tagDisplayResult().tagName}
-                  componentName={tagDisplayResult().componentName}
-                  isClickable={Boolean(props.filePath && props.onOpen)}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  shrink
-                  forceShowIcon={
-                    isArrowNavigationVisible() || isInspectNavigationVisible()
-                      ? Boolean(props.filePath && props.onOpen)
-                      : Boolean(props.isContextMenuOpen)
-                  }
-                />
-              </div>
-              <Show when={props.arrowNavigationState?.isVisible}>
-                <ArrowNavigationMenu
-                  items={props.arrowNavigationState!.items}
-                  activeIndex={props.arrowNavigationState!.activeIndex}
-                  onSelect={(index) => props.onArrowNavigationSelect?.(index)}
-                />
-              </Show>
-              <Show
-                when={
-                  !isArrowNavigationVisible() &&
-                  isInspectNavigationVisible() &&
-                  props.inspectNavigationState
-                }
-              >
-                {(state) => (
-                  <ArrowNavigationMenu
-                    items={state().items}
-                    activeIndex={state().activeIndex}
-                    onSelect={(index) => props.onInspectSelect?.(index)}
-                  />
-                )}
-              </Show>
-              <Show
-                when={
-                  !isArrowNavigationVisible() &&
-                  !isInspectNavigationVisible() &&
-                  Boolean(props.actionCycleState?.isVisible)
-                }
-              >
-                <BottomSection>
-                  <div class="flex flex-col w-[calc(100%+16px)] -mx-2 -my-1.5">
-                    <For each={props.actionCycleState?.items ?? []}>
-                      {(item, itemIndex) => (
-                        <div
-                          data-ui-grab-action-cycle-item={item.label.toLowerCase()}
-                          class="contain-layout flex items-center justify-between w-full px-2 py-1 transition-colors"
-                          classList={{
-                            "bg-black/5":
-                              itemIndex() ===
-                              (props.actionCycleState?.activeIndex ?? 0),
-                            "rounded-b-[6px]":
-                              itemIndex() ===
-                              (props.actionCycleState?.items ?? []).length - 1,
-                          }}
-                        >
-                          <span class="text-[13px] leading-4 font-sans font-medium text-black">
-                            {item.label}
-                          </span>
-                          <Show when={item.shortcut}>
-                            <span class="text-[11px] font-sans text-black/50 ml-4">
-                              {formatShortcut(item.shortcut!)}
-                            </span>
-                          </Show>
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </BottomSection>
-              </Show>
-            </div>
-          </Show>
+              />
+            </Show>
 
-          <Show
-            when={
-              canInteract() && props.isPromptMode && !props.isPendingDismiss
-            }
-          >
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
-                <TagBadge
-                  tagName={tagDisplayResult().tagName}
-                  componentName={tagDisplayResult().componentName}
-                  isClickable={Boolean(props.filePath && props.onOpen)}
-                  onClick={handleTagClick}
-                  onHoverChange={handleTagHoverChange}
-                  forceShowIcon
-                />
-              </div>
-              <BottomSection>
-                <Show when={props.replyToPrompt}>
-                  <div class="flex items-center gap-1 w-full mb-1 overflow-hidden">
-                    <IconReply size={10} class="text-black/30 shrink-0" />
-                    <span class="text-black/40 text-[11px] leading-3 font-medium truncate italic">
-                      {props.replyToPrompt}
-                    </span>
-                  </div>
-                </Show>
-                <div
-                  class="shrink-0 flex justify-between items-end w-full min-h-4"
-                  style={{ "padding-left": props.replyToPrompt ? "14px" : "0" }}
-                >
-                  <textarea
-                    ref={(element) => {
-                      inputRef = element;
-                      if (props.onSubmit) {
-                        queueMicrotask(() => {
-                          element.focus({ preventScroll: true });
-                          autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
-                        });
-                      }
-                    }}
-                    data-ui-grab-ignore-events
-                    data-ui-grab-input
-                    class="text-black text-[13px] leading-4 font-medium bg-transparent border-none outline-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
-                    style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
-                      "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
-                      "scrollbar-width": "none",
-                    }}
-                    value={props.inputValue ?? ""}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Add context"
-                    rows={1}
-                    readOnly={!props.onSubmit}
-                  />
-                  <Show when={props.onSubmit}>
-                    <button
-                      data-ui-grab-submit
-                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-black/72 cursor-pointer ml-1 interactive-scale"
-                      style={{
-                        "box-shadow":
-                          "inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(15,23,42,0.16)",
-                      }}
-                      onClick={() => props.onSubmit?.()}
-                    >
-                      <IconSubmit size={10} class="text-white" />
-                    </button>
-                  </Show>
-                </div>
-              </BottomSection>
-            </div>
-          </Show>
-
-          <Show when={props.isPendingDismiss}>
-            <DiscardPrompt
-              onConfirm={props.onConfirmDismiss}
-              onCancel={() => {
-                props.onCancelDismiss?.();
-                inputRef?.focus({ preventScroll: true });
-              }}
-            />
-          </Show>
-
-          <Show when={props.error}>
-            <ErrorView
-              error={props.error!}
-              onAcknowledge={props.onAcknowledgeError}
-              onRetry={props.onRetry}
-            />
-          </Show>
+            <Show when={props.error}>
+              <ErrorView
+                error={props.error!}
+                onAcknowledge={props.onAcknowledgeError}
+                onRetry={props.onRetry}
+              />
+            </Show>
+          </div>
         </div>
       </div>
     </Show>

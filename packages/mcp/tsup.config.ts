@@ -18,7 +18,7 @@ export default defineConfig([
   {
     entry: ["./src/client.ts"],
     format: ["iife"],
-    globalName: "ReactGrabMcp",
+    globalName: "UiGrabMcp",
     outExtension: () => ({ js: ".global.js" }),
     dts: false,
     clean: false,

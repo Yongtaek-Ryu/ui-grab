@@ -3,7 +3,7 @@ import {
   detectFramework,
   detectMonorepo,
   detectNextRouterType,
-  detectReactGrab,
+  detectUiGrab,
   detectInstalledUiGrabPackage,
   detectInstalledAgents,
   detectUnsupportedFramework,
@@ -175,14 +175,14 @@ describe("detectMonorepo", () => {
   });
 });
 
-describe("detectReactGrab", () => {
+describe("detectUiGrab", () => {
   it("should return false when only the dependency is installed", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(
       JSON.stringify({ dependencies: { "ui-grab": "1.0.0" } }),
     );
 
-    expect(detectReactGrab("/test")).toBe(false);
+    expect(detectUiGrab("/test")).toBe(false);
   });
 
   it("should return false when ui-grab is not installed", () => {
@@ -191,7 +191,7 @@ describe("detectReactGrab", () => {
       JSON.stringify({ dependencies: { react: "18.0.0" } }),
     );
 
-    expect(detectReactGrab("/test")).toBe(false);
+    expect(detectUiGrab("/test")).toBe(false);
   });
 
   it("should detect ui-grab when an entry file imports it", () => {
@@ -209,7 +209,7 @@ describe("detectReactGrab", () => {
 }`;
     });
 
-    expect(detectReactGrab("/test")).toBe(true);
+    expect(detectUiGrab("/test")).toBe(true);
   });
 
   it("should detect ui-grab when a Vite JSX entry file imports it", () => {
@@ -227,20 +227,20 @@ describe("detectReactGrab", () => {
 }`;
     });
 
-    expect(detectReactGrab("/test")).toBe(true);
+    expect(detectUiGrab("/test")).toBe(true);
   });
 
   it("should return false when no package.json exists", () => {
     mockExistsSync.mockReturnValue(false);
 
-    expect(detectReactGrab("/test")).toBe(false);
+    expect(detectUiGrab("/test")).toBe(false);
   });
 
   it("should return false for malformed package.json", () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue("not valid json");
 
-    expect(detectReactGrab("/test")).toBe(false);
+    expect(detectUiGrab("/test")).toBe(false);
   });
 
   it("should not treat an app title containing ui-grab as an installation marker", () => {
@@ -262,7 +262,7 @@ describe("detectReactGrab", () => {
 </html>`;
     });
 
-    expect(detectReactGrab("/test")).toBe(false);
+    expect(detectUiGrab("/test")).toBe(false);
   });
 });
 
@@ -302,7 +302,7 @@ describe("detectInstalledAgents", () => {
       JSON.stringify({
         devDependencies: {
           "ui-grab-mcp": "0.1.0",
-          "@react-grab/cursor": "1.0.0",
+          "@ui-grab/cursor": "1.0.0",
         },
       }),
     );

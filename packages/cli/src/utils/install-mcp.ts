@@ -27,6 +27,44 @@ interface InstallResult {
   error?: string;
 }
 
+const resolveLocalMcpBinary = (cwd: string): string | null => {
+  const binaryName = process.platform === "win32" ? `${PACKAGE_NAME}.cmd` : PACKAGE_NAME;
+  const localBinaryPath = path.join(cwd, "node_modules", ".bin", binaryName);
+  return fs.existsSync(localBinaryPath) ? localBinaryPath : null;
+};
+
+export const createMcpServerConfig = (
+  cwd = process.cwd(),
+): {
+  stdioConfig: { command: string; args: string[] };
+  openCodeConfig: { type: "local"; command: string[] };
+} => {
+  const localBinaryPath = resolveLocalMcpBinary(cwd);
+  if (localBinaryPath) {
+    return {
+      stdioConfig: {
+        command: localBinaryPath,
+        args: ["--stdio"],
+      },
+      openCodeConfig: {
+        type: "local",
+        command: [localBinaryPath, "--stdio"],
+      },
+    };
+  }
+
+  return {
+    stdioConfig: {
+      command: "npx",
+      args: ["-y", PACKAGE_NAME, "--stdio"],
+    },
+    openCodeConfig: {
+      type: "local",
+      command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
+    },
+  };
+};
+
 const getXdgConfigHome = (): string =>
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
 
@@ -58,14 +96,10 @@ export const getOpenCodeConfigPath = (): string => {
   return jsoncPath;
 };
 
-const getClients = (): ClientDefinition[] => {
+const getClients = (cwd = process.cwd()): ClientDefinition[] => {
   const homeDir = os.homedir();
   const baseDir = getBaseDir();
-
-  const stdioConfig = {
-    command: "npx",
-    args: ["-y", PACKAGE_NAME, "--stdio"],
-  };
+  const { stdioConfig, openCodeConfig } = createMcpServerConfig(cwd);
 
   return [
     {
@@ -97,10 +131,7 @@ const getClients = (): ClientDefinition[] => {
       configPath: getOpenCodeConfigPath(),
       configKey: "mcp",
       format: "json",
-      serverConfig: {
-        type: "local",
-        command: ["npx", "-y", PACKAGE_NAME, "--stdio"],
-      },
+      serverConfig: openCodeConfig,
     },
     {
       name: "VS Code",
@@ -205,8 +236,9 @@ export const getMcpClientNames = (): string[] =>
 
 export const installMcpServers = (
   selectedClients?: string[],
+  options?: { cwd?: string },
 ): InstallResult[] => {
-  const allClients = getClients();
+  const allClients = getClients(options?.cwd);
   const clients = selectedClients
     ? allClients.filter((client) => selectedClients.includes(client.name))
     : allClients;
@@ -262,7 +294,7 @@ export const installMcpServers = (
   return results;
 };
 
-export const promptMcpInstall = async (): Promise<boolean> => {
+export const promptMcpInstall = async (cwd?: string): Promise<boolean> => {
   const clientNames = getMcpClientNames();
   const { selectedAgents } = await prompts({
     type: "multiselect",
@@ -280,7 +312,7 @@ export const promptMcpInstall = async (): Promise<boolean> => {
   }
 
   logger.break();
-  const results = installMcpServers(selectedAgents);
+  const results = installMcpServers(selectedAgents, { cwd });
   const hasSuccess = results.some((result) => result.success);
   return hasSuccess;
 };

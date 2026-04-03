@@ -29,12 +29,12 @@ import {
   previewOptionsTransform,
   previewPackageJsonTransform,
   previewTransform,
-  type ReactGrabOptions,
+  type UiGrabOptions,
 } from "../utils/transform.js";
 import { formatActivationKeyDisplay } from "../utils/format-activation-key.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
-const DOCS_URL = "https://github.com/Yongtaek-Ryu/ui-grab";
+const DOCS_URL = "https://github.com/kyleryu98/ui-grab";
 
 interface ReportConfig {
   framework: string;
@@ -154,7 +154,7 @@ export const init = new Command()
 
       const projectInfo = await detectProject(cwd);
 
-      if (projectInfo.hasReactGrab && !opts.force) {
+      if (projectInfo.hasUiGrab && !opts.force) {
         preflightSpinner.succeed();
 
         if (isNonInteractive) {
@@ -188,7 +188,7 @@ export const init = new Command()
           logger.log(`Configure ${highlighter.info("UI Grab")} options:`);
           logger.break();
 
-          const collectedOptions: ReactGrabOptions = {};
+          const collectedOptions: UiGrabOptions = {};
 
           if (opts.key) {
             collectedOptions.activationKey = opts.key;
@@ -365,7 +365,7 @@ export const init = new Command()
         }
 
         if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
+          const didInstall = await promptMcpInstall(projectInfo.projectRoot);
           if (!didInstall) {
             logger.break();
             process.exit(0);
@@ -497,7 +497,7 @@ export const init = new Command()
         }
 
         if (wantAddMcp) {
-          const didInstall = await promptMcpInstall();
+          const didInstall = await promptMcpInstall(projectInfo.projectRoot);
           if (!didInstall) {
             logger.break();
             process.exit(0);
@@ -586,11 +586,11 @@ export const init = new Command()
         }
       }
 
-      const shouldInstallReactGrab = !projectInfo.hasUiGrabPackageInstalled;
+      const shouldInstallUiGrab = !projectInfo.hasUiGrabPackageInstalled;
 
-      if (!opts.skipInstall && shouldInstallReactGrab) {
+      if (!opts.skipInstall && shouldInstallUiGrab) {
         installPackagesWithFeedback(
-          getPackagesToInstall(shouldInstallReactGrab),
+          getPackagesToInstall(shouldInstallUiGrab),
           finalPackageManager,
           projectInfo.projectRoot,
         );

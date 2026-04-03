@@ -27,7 +27,7 @@ export interface TransformResult {
   noChanges?: boolean;
 }
 
-export interface ReactGrabOptions {
+export interface UiGrabOptions {
   activationKey?: string;
   activationMode?: "toggle" | "hold";
   keyHoldDuration?: number;
@@ -45,7 +45,7 @@ export interface PackageJsonTransformResult {
   warning?: string;
 }
 
-const hasReactGrabCode = (content: string): boolean => {
+const hasUiGrabCode = (content: string): boolean => {
   return hasUiGrabMarker(content);
 };
 
@@ -83,12 +83,12 @@ const findInstrumentationFile = (projectRoot: string): string | null => {
   return null;
 };
 
-const hasReactGrabInInstrumentation = (projectRoot: string): boolean => {
+const hasUiGrabInInstrumentation = (projectRoot: string): boolean => {
   const instrumentationPath = findInstrumentationFile(projectRoot);
   if (!instrumentationPath) return false;
 
   const content = readFileSync(instrumentationPath, "utf-8");
-  return hasReactGrabCode(content);
+  return hasUiGrabCode(content);
 };
 
 const findDocumentFile = (projectRoot: string): string | null => {
@@ -208,14 +208,14 @@ const addAgentToExistingNextApp = (
           />
         )}`;
 
-  const reactGrabBlockMatch = originalContent.match(
+  const uiGrabBlockMatch = originalContent.match(
     /\{process\.env\.NODE_ENV\s*===\s*["']development["']\s*&&\s*\(\s*<Script[^>]*ui-grab[^>]*\/>\s*\)\}/is,
   );
 
-  if (reactGrabBlockMatch) {
+  if (uiGrabBlockMatch) {
     const newContent = originalContent.replace(
-      reactGrabBlockMatch[0],
-      `${reactGrabBlockMatch[0]}\n        ${agentScript}`,
+      uiGrabBlockMatch[0],
+      `${uiGrabBlockMatch[0]}\n        ${agentScript}`,
     );
     return {
       success: true,
@@ -282,12 +282,12 @@ const addAgentToExistingImport = (
   }
 
   const agentImport = `import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
+  const uiGrabImportMatch = originalContent.match(
     /import\s*\(\s*["']ui-grab["']\s*\);?/,
   );
 
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
+  if (uiGrabImportMatch) {
+    const matchedText = uiGrabImportMatch[0];
     const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
       matchedText,
@@ -342,12 +342,12 @@ const addAgentToExistingTanStack = (
   }
 
   const agentImport = `void import("${agentPackage}/client");`;
-  const reactGrabImportMatch = originalContent.match(
+  const uiGrabImportMatch = originalContent.match(
     /void\s+import\s*\(\s*["']ui-grab["']\s*\);?/,
   );
 
-  if (reactGrabImportMatch) {
-    const matchedText = reactGrabImportMatch[0];
+  if (uiGrabImportMatch) {
+    const matchedText = uiGrabImportMatch[0];
     const hasSemicolon = matchedText.endsWith(";");
     const newContent = originalContent.replace(
       matchedText,
@@ -372,7 +372,7 @@ const addAgentToExistingTanStack = (
 const transformNextAppRouter = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
   const layoutPath = findLayoutFile(projectRoot);
@@ -387,21 +387,21 @@ const transformNextAppRouter = (
 
   const originalContent = readFileSync(layoutPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile =
-    hasReactGrabInInstrumentation(projectRoot);
+  const hasUiGrabInFile = hasUiGrabCode(originalContent);
+  const hasUiGrabInInstrumentationFile =
+    hasUiGrabInInstrumentation(projectRoot);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasUiGrabInFile && uiGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, layoutPath);
   }
 
-  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
+  if (!force && (hasUiGrabInFile || hasUiGrabInInstrumentationFile)) {
     return {
       success: true,
       filePath: layoutPath,
       message:
         "UI Grab is already installed" +
-        (hasReactGrabInInstrumentationFile
+        (hasUiGrabInInstrumentationFile
           ? " in instrumentation-client"
           : " in this file"),
       noChanges: true,
@@ -448,7 +448,7 @@ const transformNextAppRouter = (
 const transformNextPagesRouter = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
   const documentPath = findDocumentFile(projectRoot);
@@ -482,21 +482,21 @@ const transformNextPagesRouter = (
 
   const originalContent = readFileSync(documentPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
-  const hasReactGrabInInstrumentationFile =
-    hasReactGrabInInstrumentation(projectRoot);
+  const hasUiGrabInFile = hasUiGrabCode(originalContent);
+  const hasUiGrabInInstrumentationFile =
+    hasUiGrabInInstrumentation(projectRoot);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasUiGrabInFile && uiGrabAlreadyConfigured) {
     return addAgentToExistingNextApp(originalContent, agent, documentPath);
   }
 
-  if (!force && (hasReactGrabInFile || hasReactGrabInInstrumentationFile)) {
+  if (!force && (hasUiGrabInFile || hasUiGrabInInstrumentationFile)) {
     return {
       success: true,
       filePath: documentPath,
       message:
         "UI Grab is already installed" +
-        (hasReactGrabInInstrumentationFile
+        (hasUiGrabInInstrumentationFile
           ? " in instrumentation-client"
           : " in this file"),
       noChanges: true,
@@ -533,12 +533,12 @@ const transformNextPagesRouter = (
 const checkExistingInstallation = (
   filePath: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
 ): TransformResult | null => {
   const content = readFileSync(filePath, "utf-8");
-  if (!hasReactGrabCode(content)) return null;
+  if (!hasUiGrabCode(content)) return null;
 
-  if (reactGrabAlreadyConfigured) {
+  if (uiGrabAlreadyConfigured) {
     return addAgentToExistingImport(content, agent, filePath);
   }
   return {
@@ -552,7 +552,7 @@ const checkExistingInstallation = (
 const transformVite = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
@@ -563,7 +563,7 @@ const transformVite = (
       const existingResult = checkExistingInstallation(
         indexPath,
         agent,
-        reactGrabAlreadyConfigured,
+        uiGrabAlreadyConfigured,
       );
       if (existingResult) return existingResult;
     }
@@ -581,7 +581,7 @@ const transformVite = (
     const existingResult = checkExistingInstallation(
       entryPath,
       agent,
-      reactGrabAlreadyConfigured,
+      uiGrabAlreadyConfigured,
     );
     if (existingResult) return existingResult;
   }
@@ -601,7 +601,7 @@ const transformVite = (
 const transformWebpack = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
   const entryPath = findEntryFile(projectRoot);
@@ -618,7 +618,7 @@ const transformWebpack = (
     const existingResult = checkExistingInstallation(
       entryPath,
       agent,
-      reactGrabAlreadyConfigured,
+      uiGrabAlreadyConfigured,
     );
     if (existingResult) return existingResult;
   }
@@ -638,7 +638,7 @@ const transformWebpack = (
 const transformTanStack = (
   projectRoot: string,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean,
+  uiGrabAlreadyConfigured: boolean,
   force: boolean = false,
 ): TransformResult => {
   const rootPath = findTanStackRootFile(projectRoot);
@@ -661,13 +661,13 @@ const transformTanStack = (
 
   const originalContent = readFileSync(rootPath, "utf-8");
   let newContent = originalContent;
-  const hasReactGrabInFile = hasReactGrabCode(originalContent);
+  const hasUiGrabInFile = hasUiGrabCode(originalContent);
 
-  if (!force && hasReactGrabInFile && reactGrabAlreadyConfigured) {
+  if (!force && hasUiGrabInFile && uiGrabAlreadyConfigured) {
     return addAgentToExistingTanStack(originalContent, agent, rootPath);
   }
 
-  if (!force && hasReactGrabInFile) {
+  if (!force && hasUiGrabInFile) {
     return {
       success: true,
       filePath: rootPath,
@@ -733,7 +733,7 @@ export const previewTransform = (
   framework: Framework,
   nextRouterType: NextRouterType,
   agent: AgentIntegration,
-  reactGrabAlreadyConfigured: boolean = false,
+  uiGrabAlreadyConfigured: boolean = false,
   force: boolean = false,
 ): TransformResult => {
   const resolvedAgent: AgentIntegration = agent === "mcp" ? "none" : agent;
@@ -744,14 +744,14 @@ export const previewTransform = (
         return transformNextAppRouter(
           projectRoot,
           resolvedAgent,
-          reactGrabAlreadyConfigured,
+          uiGrabAlreadyConfigured,
           force,
         );
       }
       return transformNextPagesRouter(
         projectRoot,
         resolvedAgent,
-        reactGrabAlreadyConfigured,
+        uiGrabAlreadyConfigured,
         force,
       );
 
@@ -759,7 +759,7 @@ export const previewTransform = (
       return transformVite(
         projectRoot,
         resolvedAgent,
-        reactGrabAlreadyConfigured,
+        uiGrabAlreadyConfigured,
         force,
       );
 
@@ -767,7 +767,7 @@ export const previewTransform = (
       return transformTanStack(
         projectRoot,
         resolvedAgent,
-        reactGrabAlreadyConfigured,
+        uiGrabAlreadyConfigured,
         force,
       );
 
@@ -775,7 +775,7 @@ export const previewTransform = (
       return transformWebpack(
         projectRoot,
         resolvedAgent,
-        reactGrabAlreadyConfigured,
+        uiGrabAlreadyConfigured,
         force,
       );
 
@@ -1001,7 +1001,7 @@ export const applyPackageJsonTransform = (
   return { success: true };
 };
 
-const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
+const formatOptionsForNextjs = (options: UiGrabOptions): string => {
   const parts: string[] = [];
 
   if (options.activationKey) {
@@ -1029,7 +1029,7 @@ const formatOptionsForNextjs = (options: ReactGrabOptions): string => {
   return `{ ${parts.join(", ")} }`;
 };
 
-const formatOptionsAsJson = (options: ReactGrabOptions): string => {
+const formatOptionsAsJson = (options: UiGrabOptions): string => {
   const cleanOptions: Record<string, unknown> = {};
 
   if (options.activationKey) {
@@ -1056,7 +1056,7 @@ const formatOptionsAsJson = (options: ReactGrabOptions): string => {
   return JSON.stringify(cleanOptions);
 };
 
-const findReactGrabFile = (
+const findUiGrabFile = (
   projectRoot: string,
   framework: Framework,
   nextRouterType: NextRouterType,
@@ -1069,11 +1069,11 @@ const findReactGrabFile = (
       return findDocumentFile(projectRoot);
     case "vite": {
       const entryFile = findEntryFile(projectRoot);
-      if (entryFile && hasReactGrabCode(readFileSync(entryFile, "utf-8"))) {
+      if (entryFile && hasUiGrabCode(readFileSync(entryFile, "utf-8"))) {
         return entryFile;
       }
       const indexHtml = findIndexHtml(projectRoot);
-      if (indexHtml && hasReactGrabCode(readFileSync(indexHtml, "utf-8"))) {
+      if (indexHtml && hasUiGrabCode(readFileSync(indexHtml, "utf-8"))) {
         return indexHtml;
       }
       return entryFile;
@@ -1089,14 +1089,14 @@ const findReactGrabFile = (
 
 const addOptionsToNextScript = (
   originalContent: string,
-  options: ReactGrabOptions,
+  options: UiGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabScriptMatch = originalContent.match(
+  const uiGrabScriptMatch = originalContent.match(
     /(<Script[\s\S]*?ui-grab[\s\S]*?)\s*(\/?>)/i,
   );
 
-  if (!reactGrabScriptMatch) {
+  if (!uiGrabScriptMatch) {
     return {
       success: false,
       filePath,
@@ -1104,9 +1104,9 @@ const addOptionsToNextScript = (
     };
   }
 
-  const scriptTag = reactGrabScriptMatch[0];
-  const scriptOpening = reactGrabScriptMatch[1];
-  const scriptClosing = reactGrabScriptMatch[2];
+  const scriptTag = uiGrabScriptMatch[0];
+  const scriptOpening = uiGrabScriptMatch[1];
+  const scriptClosing = uiGrabScriptMatch[2];
 
   const existingDataOptionsMatch = scriptTag.match(
     /data-options=\{JSON\.stringify\([^)]+\)\}/,
@@ -1137,14 +1137,14 @@ const addOptionsToNextScript = (
 
 const addOptionsToViteScript = (
   originalContent: string,
-  options: ReactGrabOptions,
+  options: UiGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportWithInitMatch = originalContent.match(
+  const uiGrabImportWithInitMatch = originalContent.match(
     /import\s*\(\s*["']ui-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
-  if (!reactGrabImportWithInitMatch) {
+  if (!uiGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1156,7 +1156,7 @@ const addOptionsToViteScript = (
   const newImport = `import("ui-grab").then((m) => m.init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
+    uiGrabImportWithInitMatch[0],
     newImport,
   );
 
@@ -1171,14 +1171,14 @@ const addOptionsToViteScript = (
 
 const addOptionsToWebpackImport = (
   originalContent: string,
-  options: ReactGrabOptions,
+  options: UiGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportWithInitMatch = originalContent.match(
+  const uiGrabImportWithInitMatch = originalContent.match(
     /import\s*\(\s*["']ui-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/,
   );
 
-  if (!reactGrabImportWithInitMatch) {
+  if (!uiGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1190,7 +1190,7 @@ const addOptionsToWebpackImport = (
   const newImport = `import("ui-grab").then((m) => m.init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
+    uiGrabImportWithInitMatch[0],
     newImport,
   );
 
@@ -1205,14 +1205,14 @@ const addOptionsToWebpackImport = (
 
 const addOptionsToTanStackImport = (
   originalContent: string,
-  options: ReactGrabOptions,
+  options: UiGrabOptions,
   filePath: string,
 ): TransformResult => {
-  const reactGrabImportWithInitMatch = originalContent.match(
+  const uiGrabImportWithInitMatch = originalContent.match(
     /(?:void\s+import\s*\(\s*["']ui-grab["']\s*\)|import\s*\(\s*["']ui-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/,
   );
 
-  if (!reactGrabImportWithInitMatch) {
+  if (!uiGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1224,7 +1224,7 @@ const addOptionsToTanStackImport = (
   const newImport = `import("ui-grab/core").then(({ init }) => init(${optionsJson}))`;
 
   const newContent = originalContent.replace(
-    reactGrabImportWithInitMatch[0],
+    uiGrabImportWithInitMatch[0],
     newImport,
   );
 
@@ -1241,9 +1241,9 @@ export const previewOptionsTransform = (
   projectRoot: string,
   framework: Framework,
   nextRouterType: NextRouterType,
-  options: ReactGrabOptions,
+  options: UiGrabOptions,
 ): TransformResult => {
-  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+  const filePath = findUiGrabFile(projectRoot, framework, nextRouterType);
 
   if (!filePath) {
     return {
@@ -1255,7 +1255,7 @@ export const previewOptionsTransform = (
 
   const originalContent = readFileSync(filePath, "utf-8");
 
-  if (!hasReactGrabCode(originalContent)) {
+  if (!hasUiGrabCode(originalContent)) {
     return {
       success: false,
       filePath,
@@ -1484,7 +1484,7 @@ export const previewAgentRemoval = (
   nextRouterType: NextRouterType,
   agent: string,
 ): TransformResult => {
-  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+  const filePath = findUiGrabFile(projectRoot, framework, nextRouterType);
 
   if (!filePath) {
     return {
@@ -1596,7 +1596,7 @@ export const previewCdnTransform = (
   nextRouterType: NextRouterType,
   targetCdnDomain: string,
 ): TransformResult => {
-  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+  const filePath = findUiGrabFile(projectRoot, framework, nextRouterType);
   if (!filePath) {
     return {
       success: false,

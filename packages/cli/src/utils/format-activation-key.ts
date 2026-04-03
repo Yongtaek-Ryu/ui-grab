@@ -1,7 +1,7 @@
-import type { ReactGrabOptions } from "./transform.js";
+import type { UiGrabOptions } from "./transform.js";
 
 export const formatActivationKeyDisplay = (
-  activationKey: ReactGrabOptions["activationKey"],
+  activationKey: UiGrabOptions["activationKey"],
 ): string => {
   const defaultLabel = process.platform === "darwin" ? "Option" : "Alt";
   if (!activationKey) return `Default (${defaultLabel})`;

@@ -13,7 +13,7 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "ui-grab/core": ["../react-grab/src/core/index.tsx"]
+      "ui-grab/core": ["../ui-grab-runtime/src/core/index.tsx"]
     }
   },
   "include": ["src"]

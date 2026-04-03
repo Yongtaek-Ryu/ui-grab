@@ -20,7 +20,7 @@ interface ProjectInfo {
   nextRouterType: NextRouterType;
   isMonorepo: boolean;
   projectRoot: string;
-  hasReactGrab: boolean;
+  hasUiGrab: boolean;
   hasUiGrabPackageInstalled: boolean;
   installedAgents: string[];
   unsupportedFramework: UnsupportedFramework;
@@ -356,7 +356,7 @@ export const findReactProjects = (projectRoot: string): WorkspaceProject[] => {
   return [];
 };
 
-const hasReactGrabInFile = (filePath: string): boolean => {
+const hasUiGrabInFile = (filePath: string): boolean => {
   if (!existsSync(filePath)) return false;
   try {
     const content = readFileSync(filePath, "utf-8");
@@ -385,7 +385,7 @@ export const detectInstalledUiGrabPackage = (projectRoot: string): boolean => {
   return false;
 };
 
-export const detectReactGrab = (projectRoot: string): boolean => {
+export const detectUiGrab = (projectRoot: string): boolean => {
   const filesToCheck = [
     join(projectRoot, "app", "layout.tsx"),
     join(projectRoot, "app", "layout.jsx"),
@@ -413,7 +413,7 @@ export const detectReactGrab = (projectRoot: string): boolean => {
     join(projectRoot, "app", "routes", "__root.jsx"),
   ];
 
-  return filesToCheck.some(hasReactGrabInFile);
+  return filesToCheck.some(hasUiGrabInFile);
 };
 
 const AGENT_PACKAGES = ["ui-grab-mcp"];
@@ -491,7 +491,7 @@ export const detectProject = async (
       framework === "next" ? detectNextRouterType(projectRoot) : "unknown",
     isMonorepo: detectMonorepo(projectRoot),
     projectRoot,
-    hasReactGrab: detectReactGrab(projectRoot),
+    hasUiGrab: detectUiGrab(projectRoot),
     hasUiGrabPackageInstalled: detectInstalledUiGrabPackage(projectRoot),
     installedAgents: detectInstalledAgents(projectRoot),
     unsupportedFramework: detectUnsupportedFramework(projectRoot),

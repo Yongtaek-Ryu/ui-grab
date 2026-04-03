@@ -39,15 +39,13 @@
   },
   "scripts": {
     "dev": "tsup --watch",
-    "build": "pnpm --filter ui-grab build && rm -rf dist && NODE_ENV=production tsup",
-    "prepack": "pnpm build && node scripts/prepare-package-manifest.js",
-    "postpack": "node scripts/restore-package-manifest.js",
+    "build": "rm -rf dist && NODE_ENV=production tsup",
+    "prepack": "pnpm build",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.0",
     "fkill": "^9.0.0",
-    "ui-grab": "workspace:*",
     "zod": "^3.25.0"
   },
   "devDependencies": {

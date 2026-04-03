@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -28,13 +28,12 @@ const npmCommandEnv = Object.fromEntries(
 test("packed package manifest does not leak workspace dependencies", () => {
   const packageRoot = path.resolve(import.meta.dirname, "..");
   const sourceManifestPath = path.join(packageRoot, "package.json");
-  const backupManifestPath = path.join(packageRoot, ".package.json.backup");
   const originalManifest = readFileSync(sourceManifestPath, "utf8");
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "ui-grab-mcp-pack-"));
 
   try {
     const sourceManifest = JSON.parse(originalManifest);
-    assert.equal(sourceManifest.dependencies["ui-grab"], "workspace:*");
+    assert.equal(sourceManifest.dependencies["ui-grab"], undefined);
 
     const packResult = execFileSync(
       "npm",
@@ -58,24 +57,19 @@ test("packed package manifest does not leak workspace dependencies", () => {
       readFileSync(path.join(tempRoot, "package", "package.json"), "utf8"),
     );
 
-    assert.equal(packedManifest.dependencies["ui-grab"], packedManifest.version);
     assert.equal(packedManifest.homepage, CANONICAL_REPOSITORY_URL);
     assert.equal(packedManifest.bugs.url, CANONICAL_ISSUES_URL);
     assert.equal(packedManifest.repository.url, CANONICAL_GIT_URL);
-    assert.ok(
-      !packedManifest.dependencies["ui-grab"].startsWith("workspace:"),
-      "packed manifest still contains a workspace protocol dependency",
+    assert.equal(
+      packedManifest.dependencies?.["ui-grab"],
+      undefined,
+      "packed manifest should not publish a direct ui-grab dependency",
     );
   } finally {
     assert.equal(
       readFileSync(sourceManifestPath, "utf8"),
       originalManifest,
-      "npm pack should restore the source manifest",
-    );
-    assert.equal(
-      existsSync(backupManifestPath),
-      false,
-      "packaging backup should be removed after npm pack",
+      "npm pack should not rewrite the source manifest",
     );
     rmSync(tempRoot, { recursive: true, force: true });
   }

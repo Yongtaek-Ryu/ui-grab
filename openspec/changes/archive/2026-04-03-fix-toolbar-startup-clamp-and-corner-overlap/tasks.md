@@ -1,0 +1,4 @@
+- [x] Re-clamp the toolbar after startup measurements settle so the initial render stays inside the viewport.
+- [x] Separate the resize handle from the collapse control in compact and expanded toolbar layouts.
+- [x] Add or update regression coverage for startup visibility and non-overlapping corner controls.
+- [x] Run the relevant ui-grab-runtime typecheck, e2e, and build verification.
